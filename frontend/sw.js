@@ -1,4 +1,4 @@
-const CACHE_NAME = 'ad-app-v1';
+const CACHE_NAME = 'ad-app-v2';
 const ASSETS_TO_CACHE = [
     './',
     './index.html',
@@ -7,6 +7,7 @@ const ASSETS_TO_CACHE = [
     './manifest.json'
 ];
 
+// Install Event
 self.addEventListener('install', event => {
     event.waitUntil(
         caches.open(CACHE_NAME).then(cache => {
@@ -15,14 +16,22 @@ self.addEventListener('install', event => {
     );
 });
 
-self.addEventListener('fetch', event => {
-    // Only cache GET requests, do not cache API calls to our backend
-    if (event.request.method !== 'GET' || event.request.url.includes(':8000')) {
-        return;
-    }
-    
+// Activate Event (Cleanup old caches)
+self.addEventListener('activate', event => {
+    event.waitUntil(
+        caches.keys().then(keys => {
+            return Promise.all(keys
+                .filter(key => key !== CACHE_NAME)
+                .map(key => caches.delete(key))
+            );
+        })
+    );
+});
+
+// Fetch Event (Required for Installability)
+self.addEventListener('fetch', (event) => {
     event.respondWith(
-        caches.match(event.request).then(response => {
+        caches.match(event.request).then((response) => {
             return response || fetch(event.request);
         })
     );
