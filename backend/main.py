@@ -1,4 +1,5 @@
 from fastapi import FastAPI, Depends, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from typing import List
 import random
@@ -15,6 +16,16 @@ app = FastAPI(
     title="PWA Ad Engine API",
     description="Backend for serving personalized ads and tracking A/B testing data."
 )
+
+# --- ADD THIS BLOCK ---
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"], # In production, replace "*" with your frontend domain
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+# ----------------------
 
 # --- USER ENDPOINTS ---
 
