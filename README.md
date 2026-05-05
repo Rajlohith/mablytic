@@ -65,7 +65,14 @@ personalized-ad-pwa/
 
 ## Installation and Setup
 
+Install dependencies:
+
+```bash
+pip install -r requirements.txt
+```
+
 Run the backend and frontend in separate terminal windows.
+
 
 ### Backend Setup
 
@@ -75,25 +82,19 @@ Run the backend and frontend in separate terminal windows.
 cd backend
 ```
 
-2. Install dependencies:
-
-```bash
-pip install -r requirements.txt
-```
-
-3. Start the FastAPI server:
+2. Start the FastAPI server:
 
 ```bash
 uvicorn main:app --reload
 ```
 
-4. Access the backend:
+3. Access the backend:
 
 ```bash
 http://127.0.0.1:8000
 ```
 
-5. API documentation (Swagger UI):
+4. API documentation (Swagger UI):
 
 ```bash
 http://127.0.0.1:8000/docs
