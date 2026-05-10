@@ -1,0 +1,1375 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ADGen — Persona-Based Ad Testing</title>
+<style>
+/* ── Reset & Variables ─────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:           #0d1017;
+  --sidebar:      #131824;
+  --card:         #1b1f2e;
+  --card-hover:   #222740;
+  --border:       #272d45;
+  --text:         #e4e6f0;
+  --muted:        #6070a0;
+  --accent:       #5b68ff;
+  --accent-soft:  rgba(91,104,255,0.15);
+  --green:        #22c55e;
+  --green-soft:   rgba(34,197,94,0.15);
+  --cyan:         #06b6d4;
+  --cyan-soft:    rgba(6,182,212,0.15);
+  --orange:       #f97316;
+  --orange-soft:  rgba(249,115,22,0.15);
+  --purple:       #a855f7;
+  --purple-soft:  rgba(168,85,247,0.15);
+  --red:          #ef4444;
+  --red-soft:     rgba(239,68,68,0.12);
+}
+
+[data-theme="light"] {
+  --bg:         #f0f2f9;
+  --sidebar:    #ffffff;
+  --card:       #ffffff;
+  --card-hover: #f5f7ff;
+  --border:     #dde2f0;
+  --text:       #1a1f38;
+  --muted:      #7080b0;
+}
+
+body {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  display: flex;
+  height: 100vh;
+  overflow: hidden;
+  font-size: 14px;
+}
+
+/* ── Sidebar ──────────────────────────────────────────────────────────── */
+.sidebar {
+  width: 210px;
+  min-width: 210px;
+  background: var(--sidebar);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  padding: 18px 10px 16px;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 10px 18px;
+}
+
+.logo-icon {
+  width: 30px; height: 30px;
+  border-radius: 8px;
+  background: var(--accent);
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 800; font-size: 13px; color: #fff;
+  flex-shrink: 0;
+}
+
+.logo-name {
+  font-weight: 700; font-size: 15px; color: var(--text);
+}
+
+/* Nav */
+.nav { flex: 1; }
+
+.nav-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  color: var(--muted);
+  font-size: 13px; font-weight: 500;
+  transition: all 0.15s;
+  margin-bottom: 2px;
+  user-select: none;
+}
+
+.nav-item:hover { background: var(--accent-soft); color: var(--text); }
+
+.nav-item.active {
+  background: var(--accent-soft);
+  color: var(--text);
+}
+
+.nav-item.active .nav-icon { background: var(--accent); }
+
+.nav-icon {
+  width: 26px; height: 26px;
+  border-radius: 6px;
+  background: var(--border);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px;
+  flex-shrink: 0;
+  transition: background 0.15s;
+}
+
+/* Settings */
+.settings-sep {
+  border-top: 1px solid var(--border);
+  margin: 10px 0;
+}
+
+.settings-label {
+  font-size: 10px; font-weight: 700;
+  color: var(--muted); letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 0 12px; margin-bottom: 6px;
+}
+
+.user-row {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  margin-top: 2px;
+}
+
+.user-avatar {
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  background: var(--accent);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 800; color: #fff;
+  flex-shrink: 0;
+}
+
+.user-info small { display: block; font-size: 10px; color: var(--muted); }
+
+/* ── Main ─────────────────────────────────────────────────────────────── */
+.main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+
+/* Topbar */
+.topbar {
+  background: var(--sidebar);
+  border-bottom: 1px solid var(--border);
+  padding: 0 24px;
+  height: 52px;
+  display: flex; align-items: center; gap: 10px;
+  flex-shrink: 0;
+}
+
+.topbar-title {
+  font-size: 14px; font-weight: 700; color: var(--text);
+}
+
+.badge {
+  font-size: 10px; font-weight: 700;
+  padding: 2px 8px; border-radius: 4px;
+  text-transform: uppercase; letter-spacing: 0.06em;
+}
+
+.badge-admin  { background: var(--green-soft);  color: var(--green); }
+.badge-accent { background: var(--accent-soft); color: var(--accent); }
+
+.spacer { flex: 1; }
+
+.backend-badge {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 11px; color: var(--muted);
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 4px 12px;
+}
+
+.dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--muted);
+  transition: background 0.3s;
+}
+
+.dot.online  { background: var(--green); }
+.dot.offline { background: var(--red); }
+
+/* Content */
+.content {
+  flex: 1; overflow-y: auto;
+  padding: 24px 28px;
+}
+
+/* ── Pages ────────────────────────────────────────────────────────────── */
+.page { display: none; }
+.page.active { display: block; }
+
+/* ── Cards ────────────────────────────────────────────────────────────── */
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px 22px;
+}
+
+.card-title {
+  font-size: 13px; font-weight: 700; color: var(--text);
+  margin-bottom: 14px;
+}
+
+/* ── Stats ────────────────────────────────────────────────────────────── */
+.stats-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 30px;
+  margin-bottom: 10px;
+}
+
+.stat-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px 18px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.stat-icon {
+  width: 42px; height: 42px; border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 19px; flex-shrink: 0;
+}
+
+.stat-value {
+  font-size: 26px; font-weight: 800; color: var(--text);
+  line-height: 1; margin-bottom: 3px;
+}
+
+.stat-label { font-size: 11px; color: var(--muted); font-weight: 500; }
+
+/* ── Welcome ──────────────────────────────────────────────────────────── */
+.welcome-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 40px 30px;
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.aw-logo {
+  width: 72px; height: 72px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #1e2a50, #2a3a70);
+  border: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 800; font-size: 22px; color: #c8d0f0;
+  margin: 0 auto 18px;
+  letter-spacing: -0.5px;
+}
+
+.welcome-title { font-size: 22px; font-weight: 800; margin-bottom: 10px; }
+.welcome-sub   { font-size: 13px; color: var(--muted); max-width: 420px; margin: 0 auto; line-height: 1.7; }
+
+/* ── Quick Actions ────────────────────────────────────────────────────── */
+.actions-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-top: 6px;
+}
+
+.action-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 18px;
+  cursor: pointer;
+  transition: all 0.18s;
+}
+
+.action-card:hover {
+  border-color: var(--accent);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.2);
+}
+
+.action-icon {
+  width: 40px; height: 40px; border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 19px; margin-bottom: 12px;
+}
+
+.action-title { font-size: 13px; font-weight: 700; margin-bottom: 4px; }
+.action-desc  { font-size: 11.5px; color: var(--muted); }
+
+/* ── Section ──────────────────────────────────────────────────────────── */
+.section-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.section-title { font-size: 14px; font-weight: 700; }
+
+/* ── Grid ─────────────────────────────────────────────────────────────── */
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+
+/* ── Table ────────────────────────────────────────────────────────────── */
+.table-wrap { overflow-x: auto; border-radius: 12px; }
+
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+
+thead th {
+  text-align: left; padding: 10px 14px;
+  color: var(--muted); font-size: 10.5px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.08em;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+
+tbody td {
+  padding: 11px 14px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text);
+}
+
+tbody tr:last-child td { border-bottom: none; }
+tbody tr:hover td { background: var(--card-hover); }
+
+/* ── Form ─────────────────────────────────────────────────────────────── */
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.form-group { margin-bottom: 14px; }
+
+label {
+  display: block; font-size: 11px; font-weight: 700;
+  color: var(--muted); margin-bottom: 6px;
+  text-transform: uppercase; letter-spacing: 0.07em;
+}
+
+input, select, textarea {
+  width: 100%; background: var(--bg);
+  border: 1px solid var(--border); border-radius: 8px;
+  color: var(--text); font-size: 13px;
+  padding: 9px 12px; outline: none;
+  transition: border-color 0.15s;
+  font-family: inherit;
+}
+
+input:focus, select:focus, textarea:focus { border-color: var(--accent); }
+textarea { resize: vertical; min-height: 72px; }
+select option { background: #1a1d2e; }
+
+/* ── Buttons ──────────────────────────────────────────────────────────── */
+.btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 9px 18px; border-radius: 8px; border: none;
+  font-size: 13px; font-weight: 600; cursor: pointer;
+  transition: all 0.15s; font-family: inherit;
+  white-space: nowrap;
+}
+
+.btn-primary { background: var(--accent); color: #fff; }
+.btn-primary:hover { filter: brightness(1.12); }
+.btn-ghost   { background: transparent; color: var(--muted); border: 1px solid var(--border); }
+.btn-ghost:hover { background: var(--card); color: var(--text); }
+.btn-danger  { background: var(--red); color: #fff; }
+.btn-danger:hover { filter: brightness(0.9); }
+.btn-success { background: var(--green); color: #fff; }
+.btn-sm { padding: 6px 12px; font-size: 12px; border-radius: 6px; }
+
+/* ── Pills ────────────────────────────────────────────────────────────── */
+.pill {
+  display: inline-block; padding: 2px 9px; border-radius: 20px;
+  font-size: 11px; font-weight: 600;
+}
+
+.pill-view   { background: var(--cyan-soft);   color: var(--cyan); }
+.pill-click  { background: var(--green-soft);  color: var(--green); }
+.pill-a      { background: var(--accent-soft); color: var(--accent); }
+.pill-b      { background: var(--purple-soft); color: var(--purple); }
+.pill-cat    { background: var(--orange-soft); color: var(--orange); font-size: 10.5px; }
+
+/* ── CTR bar ──────────────────────────────────────────────────────────── */
+.ctr-wrap { display: flex; align-items: center; gap: 8px; min-width: 100px; }
+.ctr-track {
+  flex: 1; background: var(--bg);
+  border-radius: 4px; height: 6px; overflow: hidden;
+}
+.ctr-fill {
+  height: 100%; border-radius: 4px;
+  background: var(--accent); transition: width 0.4s ease;
+}
+.ctr-label { font-size: 11px; color: var(--muted); min-width: 36px; text-align: right; }
+
+/* ── Chart bars ───────────────────────────────────────────────────────── */
+.chart-outer {
+  background: var(--bg);
+  border-radius: 10px;
+  padding: 16px 12px 10px;
+  overflow-x: auto;
+}
+
+.chart-bars {
+  display: flex; align-items: flex-end; gap: 10px;
+  height: 120px; min-width: 300px;
+}
+
+.bar-col {
+  flex: 1; display: flex; flex-direction: column;
+  align-items: center; gap: 6px; height: 100%;
+  justify-content: flex-end;
+}
+
+.bar-fill {
+  width: 100%; border-radius: 4px 4px 0 0;
+  background: var(--accent); min-height: 4px;
+  transition: height 0.5s ease;
+}
+
+.bar-label {
+  font-size: 9px; color: var(--muted); text-align: center;
+  word-break: break-word; max-width: 56px; line-height: 1.3;
+}
+
+/* ── Ad preview ───────────────────────────────────────────────────────── */
+.ad-preview {
+  background: var(--bg); border: 1px solid var(--border);
+  border-radius: 10px; padding: 18px;
+}
+
+.ad-badge {
+  display: inline-block; font-size: 10px; font-weight: 700;
+  background: var(--border); color: var(--muted);
+  border-radius: 20px; padding: 2px 10px;
+  text-transform: uppercase; letter-spacing: 0.07em;
+  margin-bottom: 10px;
+}
+
+/* ── Misc ─────────────────────────────────────────────────────────────── */
+.empty { padding: 40px; text-align: center; color: var(--muted); font-size: 13px; }
+.loading { padding: 32px; text-align: center; color: var(--muted); font-size: 13px; animation: pulse 1.2s infinite; }
+
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+.mb-4 { margin-bottom: 16px; }
+.mb-5 { margin-bottom: 20px; }
+.mb-6 { margin-bottom: 24px; }
+.mt-3 { margin-top: 12px; }
+.mt-4 { margin-top: 16px; }
+.flex  { display: flex; }
+.flex-center { display: flex; align-items: center; }
+.gap-2 { gap: 8px; }
+.gap-3 { gap: 12px; }
+.justify-between { justify-content: space-between; }
+.text-muted { color: var(--muted); font-size: 12px; }
+
+/* Danger zone */
+.danger-zone {
+  border: 1px solid rgba(239,68,68,0.3); border-radius: 12px; padding: 20px 22px;
+}
+
+/* Selected row */
+.row-selected td { background: var(--accent-soft) !important; }
+
+/* Toast */
+#toast {
+  position: fixed; bottom: 24px; right: 24px;
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 10px; padding: 12px 18px;
+  font-size: 13px; color: var(--text);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.35);
+  z-index: 9999;
+  transform: translateY(80px); opacity: 0;
+  transition: all 0.3s;
+  max-width: 320px;
+}
+#toast.show { transform: translateY(0); opacity: 1; }
+#toast.ok  { border-left: 3px solid var(--green); }
+#toast.err { border-left: 3px solid var(--red); }
+
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+/* Scrollable list */
+.scroll-list {
+  max-height: 360px; overflow-y: auto;
+  border-radius: 10px;
+}
+
+.list-item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  transition: background 0.12s;
+}
+
+.list-item:last-child { border-bottom: none; }
+.list-item:hover { background: var(--card-hover); }
+.list-item.selected { background: var(--accent-soft); }
+
+.list-id {
+  width: 28px; height: 28px; border-radius: 50%;
+  background: var(--accent-soft); border: 1px solid var(--accent);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10px; font-weight: 700; color: var(--accent); flex-shrink: 0;
+}
+
+.detail-row {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 11px 0; border-bottom: 1px solid var(--border);
+}
+
+.detail-row:last-child { border-bottom: none; }
+.detail-key { font-size: 12px; color: var(--muted); }
+.detail-val { font-size: 14px; font-weight: 700; }
+</style>
+</head>
+
+<body>
+
+<!-- ═══════════════════════ SIDEBAR ═══════════════════════ -->
+<aside class="sidebar">
+  <div class="logo">
+    <div class="logo-icon">AW</div>
+    <span class="logo-name">ADGen</span>
+  </div>
+
+  <nav class="nav">
+    <div class="nav-item active" data-page="home">
+      <div class="nav-icon">🏠</div>
+      <span>Home</span>
+    </div>
+    <div class="nav-item" data-page="analysis">
+      <div class="nav-icon">📊</div>
+      <span>Ad Analysis</span>
+    </div>
+    <div class="nav-item" data-page="personas">
+      <div class="nav-icon">👤</div>
+      <span>Persona Management</span>
+    </div>
+    <div class="nav-item" data-page="history">
+      <div class="nav-icon">📜</div>
+      <span>Analysis History</span>
+    </div>
+    <div class="nav-item" data-page="enhance">
+      <div class="nav-icon">✨</div>
+      <span>Enhance Ad</span>
+    </div>
+  </nav>
+
+  <div class="settings-sep"></div>
+  <div class="settings-label">Settings</div>
+
+  <div class="nav-item" id="theme-toggle">
+    <div class="nav-icon">🌙</div>
+    <span id="theme-label">Light Mode</span>
+  </div>
+
+  <div class="nav-item" id="clear-btn" style="color: var(--red)">
+    <div class="nav-icon" style="background:var(--red-soft)">🗑</div>
+    <span>Clear Data</span>
+  </div>
+
+  <div class="settings-sep"></div>
+  <div class="user-row">
+    <div class="user-avatar">A</div>
+    <div class="user-info">
+      <strong style="font-size:12px">Admin</strong>
+      <small>@ Admin</small>
+    </div>
+  </div>
+</aside>
+
+<!-- ═══════════════════════ MAIN ═══════════════════════ -->
+<div class="main">
+
+  <!-- Topbar -->
+  <div class="topbar">
+    <span class="topbar-title" id="topbar-title">Persona-Based Ad Testing</span>
+    <span class="badge badge-admin">ADMIN</span>
+    <div class="spacer"></div>
+    <div class="backend-badge">
+      <div class="dot" id="status-dot"></div>
+      <span id="status-label">Checking…</span>
+    </div>
+  </div>
+
+  <!-- Content -->
+  <div class="content">
+
+    <!-- ══ PAGE: HOME ══════════════════════════════════════ -->
+    <div class="page active" id="page-home">
+
+      <div class="welcome-card mb-5">
+        <div class="aw-logo">AW</div>
+        <div class="welcome-title">Welcome to AdGen</div>
+        <div class="welcome-sub">
+          Generate detailed personas and evaluate ad performance across
+          images, videos, and text with AI-powered analysis.
+        </div>
+      </div>
+
+      <!-- Mini stats -->
+      <div class="stats-row mb-5" id="home-stats">
+        <div class="stat-card">
+          <div class="stat-icon" style="background:var(--accent-soft)">📈</div>
+          <div>
+            <div class="stat-value" id="h-analyses">—</div>
+            <div class="stat-label">Total Analyses</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon" style="background:var(--green-soft)">👥</div>
+          <div>
+            <div class="stat-value" id="h-personas">—</div>
+            <div class="stat-label">Created Personas</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon" style="background:var(--orange-soft)">📢</div>
+          <div>
+            <div class="stat-value" id="h-ads">—</div>
+            <div class="stat-label">Total Ads</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon" style="background:var(--cyan-soft)">🎯</div>
+          <div>
+            <div class="stat-value" id="h-ctr">—</div>
+            <div class="stat-label">Global CTR</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick Actions
+      <div class="section-title mb-4">Quick Actions</div>
+      <div class="actions-grid">
+        <div class="action-card" onclick="gotoPage('analysis')">
+          <div class="action-icon" style="background:var(--accent-soft)">📊</div>
+          <div class="action-title">New Ad Analysis</div>
+          <div class="action-desc">Start a new A/B test analysis</div>
+        </div>
+        <div class="action-card" onclick="gotoPage('personas')">
+          <div class="action-icon" style="background:var(--green-soft)">👤</div>
+          <div class="action-title">Create Persona</div>
+          <div class="action-desc">Add a new user persona</div>
+        </div>
+        <div class="action-card" onclick="gotoPage('history')">
+          <div class="action-icon" style="background:var(--purple-soft)">📜</div>
+          <div class="action-title">View History</div>
+          <div class="action-desc">Browse past analysis reports</div>
+        </div>
+        <div class="action-card" onclick="gotoPage('enhance')">
+          <div class="action-icon" style="background:var(--orange-soft)">✨</div>
+          <div class="action-title">Enhance Ad</div>
+          <div class="action-desc">Improve ads using AI insights</div>
+        </div>
+      </div> -->
+    </div>
+
+    <!-- ══ PAGE: AD ANALYSIS ═══════════════════════════════ -->
+    <div class="page" id="page-analysis">
+
+      <!-- Stats row -->
+      <div class="stats-row mb-5">
+        <div class="stat-card">
+          <div class="stat-icon" style="background:var(--accent-soft)">👁</div>
+          <div>
+            <div class="stat-value" id="an-views">—</div>
+            <div class="stat-label">Total Views</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon" style="background:var(--green-soft)">🖱</div>
+          <div>
+            <div class="stat-value" id="an-clicks">—</div>
+            <div class="stat-label">Total Clicks</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon" style="background:var(--cyan-soft)">🎯</div>
+          <div>
+            <div class="stat-value" id="an-ctr">—</div>
+            <div class="stat-label">Global CTR</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon" style="background:var(--orange-soft)">📢</div>
+          <div>
+            <div class="stat-value" id="an-ads">—</div>
+            <div class="stat-label">Active Ads</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid-2 mb-5">
+        <!-- CTR Chart -->
+        <div class="card">
+          <div class="section-header">
+            <span class="card-title" style="margin:0">CTR by Ad</span>
+            <button class="btn btn-ghost btn-sm" onclick="loadAnalysis()">↻ Refresh</button>
+          </div>
+          <div class="chart-outer">
+            <div class="chart-bars" id="an-chart">
+              <div class="empty">No data yet</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Serve-ad tester -->
+        <div class="card">
+          <div class="card-title">Serve Ad — Live Test</div>
+          <div class="form-group">
+            <label>User ID</label>
+            <input type="number" id="serve-uid" placeholder="e.g. 1" min="1" />
+          </div>
+          <button class="btn btn-primary mb-4" onclick="serveAd()">▶ Serve Ad</button>
+
+          <div id="serve-result" style="display:none">
+            <div class="ad-preview">
+              <div class="ad-badge">Sponsored</div>
+              <div style="font-size:14px;font-weight:700;margin-bottom:6px" id="srv-title">—</div>
+              <div style="font-size:12px;color:var(--muted);margin-bottom:12px" id="srv-content">—</div>
+              <div class="flex-center gap-2 mb-4">
+                <span class="pill pill-cat" id="srv-cat">—</span>
+                <span class="pill" id="srv-var">—</span>
+              </div>
+              <div class="flex-center gap-2">
+                <button class="btn btn-success btn-sm" onclick="logInteraction('click')">👆 Log Click</button>
+                <span style="font-size:11px;color:var(--muted)">View auto-logged on load</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Per-ad analytics table -->
+      <div class="section-header mb-4">
+        <span class="section-title">Per-Ad Analytics</span>
+        <button class="btn btn-ghost btn-sm" onclick="loadAnalytics()">↻ Refresh</button>
+      </div>
+      <div class="card" style="padding:0;overflow:hidden">
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th><th>Ad Title</th><th>Category</th><th>Variant</th>
+                <th>Views</th><th>Clicks</th><th>CTR</th>
+              </tr>
+            </thead>
+            <tbody id="an-table"><tr><td colspan="7"><div class="loading">Loading…</div></td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ PAGE: PERSONA MANAGEMENT ════════════════════════ -->
+    <div class="page" id="page-personas">
+      <div class="grid-2">
+
+        <!-- Left: user list -->
+        <div>
+          <div class="section-header mb-4">
+            <span class="section-title">All Personas</span>
+            <button class="btn btn-ghost btn-sm" onclick="loadPersonas()">↻ Refresh</button>
+          </div>
+          <div class="card" style="padding:0;overflow:hidden">
+            <div class="scroll-list" id="persona-list">
+              <div class="loading">Loading…</div>
+            </div>
+          </div>
+
+          <!-- Create persona -->
+          <div class="card mt-4">
+            <div class="card-title">Create Persona</div>
+            <div class="form-group">
+              <label>Preferences <span style="text-transform:none;letter-spacing:0;font-weight:400;font-size:10px">(comma-separated)</span></label>
+              <input type="text" id="new-prefs" placeholder="tech, gaming, fitness" />
+            </div>
+            <button class="btn btn-primary" onclick="createPersona()">+ Create Persona</button>
+          </div>
+        </div>
+
+        <!-- Right: selected user analytics -->
+        <div>
+          <div class="section-title mb-4">Persona Analytics</div>
+          <div class="card" id="persona-detail">
+            <div class="empty">Select a persona from the list</div>
+          </div>
+
+          <!-- Lookup by ID -->
+          <div class="card mt-4">
+            <div class="card-title">Lookup User by ID</div>
+            <div class="form-group">
+              <label>User ID</label>
+              <input type="number" id="lookup-uid" placeholder="e.g. 3" min="1" />
+            </div>
+            <button class="btn btn-ghost" onclick="lookupUser()">🔍 Lookup</button>
+            <div id="lookup-result" class="mt-3"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ PAGE: ANALYSIS HISTORY ══════════════════════════ -->
+    <div class="page" id="page-history">
+      <div class="section-header mb-4">
+        <span class="section-title">Interaction Log</span>
+        <div class="flex-center gap-2">
+          <select id="hist-limit" style="width:auto;padding:7px 10px" onchange="loadHistory()">
+            <option value="20">Last 20</option>
+            <option value="50">Last 50</option>
+            <option value="100">Last 100</option>
+          </select>
+          <button class="btn btn-ghost btn-sm" onclick="loadHistory()">↻ Refresh</button>
+        </div>
+      </div>
+
+      <div class="card" style="padding:0;overflow:hidden">
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th><th>Timestamp</th><th>User ID</th><th>Preferences</th>
+                <th>Ad Title</th><th>Variant</th><th>Type</th>
+              </tr>
+            </thead>
+            <tbody id="hist-body"><tr><td colspan="7"><div class="loading">Loading…</div></td></tr></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Log manual interaction -->
+      <div class="card mt-4">
+        <div class="card-title">Log Manual Interaction</div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>User ID</label>
+            <input type="number" id="mi-uid" placeholder="1" min="1" />
+          </div>
+          <div class="form-group">
+            <label>Ad ID</label>
+            <input type="number" id="mi-aid" placeholder="1" min="1" />
+          </div>
+          <div class="form-group">
+            <label>Type</label>
+            <select id="mi-type">
+              <option value="view">view</option>
+              <option value="click">click</option>
+            </select>
+          </div>
+        </div>
+        <button class="btn btn-primary btn-sm" onclick="logManual()">Log Interaction</button>
+      </div>
+    </div>
+
+    <!-- ══ PAGE: ENHANCE AD ════════════════════════════════ -->
+    <div class="page" id="page-enhance">
+
+      <div class="grid-2">
+        <!-- Create ad -->
+        <div class="card">
+          <div class="card-title">Create New Ad</div>
+          <div class="form-group">
+            <label>Title</label>
+            <input type="text" id="ad-title" placeholder="e.g. TechPro Laptop 2025" />
+          </div>
+          <div class="form-group">
+            <label>Content / Description</label>
+            <textarea id="ad-content" placeholder="Write the ad copy here…"></textarea>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Category</label>
+              <input type="text" id="ad-category" placeholder="tech, gaming…" />
+            </div>
+            <div class="form-group">
+              <label>Variant</label>
+              <select id="ad-variant">
+                <option value="A">A</option>
+                <option value="B">B</option>
+                <option value="C">C</option>
+              </select>
+            </div>
+          </div>
+          <button class="btn btn-primary" onclick="createAd()">✨ Publish Ad</button>
+        </div>
+
+        <!-- Ad list -->
+        <div>
+          <div class="section-header mb-4">
+            <span class="section-title">All Ads</span>
+            <button class="btn btn-ghost btn-sm" onclick="loadAds()">↻ Refresh</button>
+          </div>
+          <div class="card" style="padding:0;overflow:hidden">
+            <div class="scroll-list" id="ad-list">
+              <div class="loading">Loading…</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Per-ad detail -->
+      <div class="mt-4" id="ad-detail-wrap" style="display:none">
+        <div class="section-title mb-4">Ad Performance Detail</div>
+        <div class="card" id="ad-detail"></div>
+      </div>
+
+      <!-- Danger zone -->
+      <div class="danger-zone mt-4">
+        <div class="flex-center justify-between">
+          <div>
+            <div style="font-weight:700;margin-bottom:4px;color:var(--red)">🗑 Danger Zone</div>
+            <div class="text-muted">This will permanently delete all users, ads, and interactions.</div>
+          </div>
+          <button class="btn btn-danger btn-sm" onclick="confirmClear()">Clear All Data</button>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+</div><!-- /main -->
+
+<!-- Toast -->
+<div id="toast"></div>
+
+<!-- ═══════════════════════ SCRIPT ═══════════════════════ -->
+<script>
+const API = "http://127.0.0.1:8000";
+let currentAdId  = null;
+let currentUserId = null;
+let selectedPersonaId = null;
+let selectedAdId = null;
+
+/* ── Toast ─────────────────────────────────────────────── */
+function toast(msg, type = "ok") {
+  const el = document.getElementById("toast");
+  el.textContent = msg;
+  el.className = `show ${type}`;
+  clearTimeout(el._t);
+  el._t = setTimeout(() => { el.className = ""; }, 3500);
+}
+
+/* ── Backend status ────────────────────────────────────── */
+async function checkBackend() {
+  const dot = document.getElementById("status-dot");
+  const lbl = document.getElementById("status-label");
+  try {
+    await fetch(`${API}/admin/dashboard-stats`);
+    dot.className = "dot online";
+    lbl.textContent = "Backend Active";
+  } catch {
+    dot.className = "dot offline";
+    lbl.textContent = "Backend Offline";
+  }
+}
+
+/* ── Navigation ────────────────────────────────────────── */
+const PAGE_TITLES = {
+  home: "Persona-Based Ad Testing",
+  analysis: "Ad Analysis",
+  personas: "Persona Management",
+  history: "Analysis History",
+  enhance: "Enhance Ad",
+};
+
+function gotoPage(name) {
+  document.querySelectorAll(".nav-item[data-page]").forEach(el => {
+    el.classList.toggle("active", el.dataset.page === name);
+  });
+  document.querySelectorAll(".page").forEach(el => el.classList.remove("active"));
+  document.getElementById(`page-${name}`).classList.add("active");
+  document.getElementById("topbar-title").textContent = PAGE_TITLES[name] || name;
+
+  if (name === "home")     loadHome();
+  if (name === "analysis") loadAnalysis();
+  if (name === "personas") loadPersonas();
+  if (name === "history")  loadHistory();
+  if (name === "enhance")  loadAds();
+}
+
+document.querySelectorAll(".nav-item[data-page]").forEach(el => {
+  el.addEventListener("click", () => gotoPage(el.dataset.page));
+});
+
+/* ── Theme ─────────────────────────────────────────────── */
+let isDark = true;
+document.getElementById("theme-toggle").addEventListener("click", () => {
+  isDark = !isDark;
+  document.documentElement.setAttribute("data-theme", isDark ? "dark" : "light");
+  document.getElementById("theme-label").textContent = isDark ? "Light Mode" : "Dark Mode";
+  document.querySelector("#theme-toggle .nav-icon").textContent = isDark ? "🌙" : "☀️";
+});
+
+/* ── Clear data ────────────────────────────────────────── */
+document.getElementById("clear-btn").addEventListener("click", confirmClear);
+
+async function confirmClear() {
+  if (!confirm("⚠️ Delete ALL users, ads, and interactions? This cannot be undone.")) return;
+  try {
+    const r = await fetch(`${API}/clear-database/`, { method: "POST" });
+    if (!r.ok) throw new Error((await r.json()).detail);
+    toast("✓ Database cleared", "ok");
+    loadHome();
+  } catch (e) { toast(`✗ ${e.message}`, "err"); }
+}
+
+/* ── Helpers ───────────────────────────────────────────── */
+async function apiFetch(path, opts = {}) {
+  const r = await fetch(`${API}${path}`, opts);
+  if (!r.ok) {
+    const detail = await r.json().catch(() => ({}));
+    throw new Error(detail.detail || r.statusText);
+  }
+  return r.json();
+}
+
+function ctrColor(v) {
+  if (v > 10) return "var(--green)";
+  if (v > 3)  return "var(--cyan)";
+  return "var(--accent)";
+}
+
+function variantPill(v) {
+  const cls = v === "A" ? "pill-a" : v === "B" ? "pill-b" : "badge-accent";
+  return `<span class="pill ${cls}">${v || "—"}</span>`;
+}
+
+/* ── HOME ──────────────────────────────────────────────── */
+async function loadHome() {
+  try {
+    const d = await apiFetch("/admin/dashboard-stats");
+    document.getElementById("h-analyses").textContent = (d.total_views || 0) + (d.total_clicks || 0);
+    document.getElementById("h-personas").textContent = d.total_users ?? "—";
+    document.getElementById("h-ads").textContent      = d.total_ads   ?? "—";
+    document.getElementById("h-ctr").textContent      = (d.global_ctr ?? "—") + (d.global_ctr !== undefined ? "%" : "");
+  } catch { /* backend offline */ }
+}
+
+/* ── ANALYSIS ──────────────────────────────────────────── */
+async function loadAnalysis() {
+  await loadAnalysisDash();
+  await loadAnalytics();
+}
+
+async function loadAnalysisDash() {
+  try {
+    const d = await apiFetch("/admin/dashboard-stats");
+    document.getElementById("an-views").textContent  = d.total_views  ?? "—";
+    document.getElementById("an-clicks").textContent = d.total_clicks ?? "—";
+    document.getElementById("an-ctr").textContent    = `${d.global_ctr ?? "—"}%`;
+    document.getElementById("an-ads").textContent    = d.total_ads    ?? "—";
+  } catch {}
+}
+
+async function loadAnalytics() {
+  const tbody = document.getElementById("an-table");
+  tbody.innerHTML = `<tr><td colspan="7"><div class="loading">Loading…</div></td></tr>`;
+  try {
+    const data = await apiFetch("/admin/analytics");
+    if (!data.length) {
+      tbody.innerHTML = `<tr><td colspan="7"><div class="empty">No analytics yet — serve some ads first.</div></td></tr>`;
+      document.getElementById("an-chart").innerHTML = `<div class="empty">No data</div>`;
+      return;
+    }
+
+    tbody.innerHTML = data.map(a => `
+      <tr>
+        <td>${a.ad_id}</td>
+        <td style="font-weight:600">${a.title}</td>
+        <td><span class="pill pill-cat">${a.category}</span></td>
+        <td>${variantPill(a.variant)}</td>
+        <td>${a.views}</td>
+        <td>${a.clicks}</td>
+        <td>
+          <div class="ctr-wrap">
+            <div class="ctr-track">
+              <div class="ctr-fill" style="width:${Math.min(a.ctr_percentage, 100)}%;background:${ctrColor(a.ctr_percentage)}"></div>
+            </div>
+            <span class="ctr-label" style="color:${ctrColor(a.ctr_percentage)}">${a.ctr_percentage}%</span>
+          </div>
+        </td>
+      </tr>
+    `).join("");
+
+    // Chart
+    const maxCtr = Math.max(...data.map(d => d.ctr_percentage), 1);
+    document.getElementById("an-chart").innerHTML = data.map(a => {
+      const h = Math.round((a.ctr_percentage / maxCtr) * 100);
+      const color = a.ctr_percentage === maxCtr ? "var(--green)" : "var(--accent)";
+      return `
+        <div class="bar-col" title="${a.title}: ${a.ctr_percentage}%">
+          <div class="bar-fill" style="height:${h}%;background:${color}"></div>
+          <div class="bar-label">${a.title}</div>
+        </div>`;
+    }).join("");
+  } catch (e) {
+    tbody.innerHTML = `<tr><td colspan="7"><div class="empty">Error: ${e.message}</div></td></tr>`;
+  }
+}
+
+/* Serve ad */
+async function serveAd() {
+  const uid = parseInt(document.getElementById("serve-uid").value);
+  if (!uid) { toast("Enter a valid User ID", "err"); return; }
+  currentUserId = uid;
+  try {
+    const ad = await apiFetch(`/serve-ad/${uid}`);
+    currentAdId = ad.id;
+    document.getElementById("srv-title").textContent   = ad.title;
+    document.getElementById("srv-content").textContent = ad.content;
+    document.getElementById("srv-cat").textContent     = ad.category;
+    document.getElementById("srv-var").className       = `pill ${ad.variant === "A" ? "pill-a" : "pill-b"}`;
+    document.getElementById("srv-var").textContent     = `Variant ${ad.variant}`;
+    document.getElementById("serve-result").style.display = "block";
+    // Auto-log view
+    await logInteraction("view", false);
+    toast(`Served Ad #${ad.id} to User #${uid}`, "ok");
+  } catch (e) { toast(`✗ ${e.message}`, "err"); }
+}
+
+async function logInteraction(type, showToast = true) {
+  if (!currentAdId || !currentUserId) { toast("Serve an ad first", "err"); return; }
+  try {
+    await apiFetch("/interactions/", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ user_id: currentUserId, ad_id: currentAdId, interaction_type: type }),
+    });
+    if (showToast) toast(`✓ Logged ${type}`, "ok");
+  } catch (e) { if (showToast) toast(`✗ ${e.message}`, "err"); }
+}
+
+/* ── PERSONAS ──────────────────────────────────────────── */
+async function loadPersonas() {
+  const list = document.getElementById("persona-list");
+  list.innerHTML = `<div class="loading">Loading…</div>`;
+  try {
+    const users = await apiFetch("/admin/users");
+    if (!users.length) { list.innerHTML = `<div class="empty">No personas yet</div>`; return; }
+    list.innerHTML = users.map(u => `
+      <div class="list-item ${selectedPersonaId === u.id ? "selected" : ""}"
+           onclick="selectPersona(${u.id})" id="persona-row-${u.id}">
+        <div class="list-id">${u.id}</div>
+        <div>
+          <div style="font-size:13px;font-weight:600;margin-bottom:2px">${u.preferences}</div>
+          <div style="font-size:11px;color:var(--muted)">User #${u.id}</div>
+        </div>
+      </div>
+    `).join("");
+  } catch (e) { list.innerHTML = `<div class="empty">Error: ${e.message}</div>`; }
+}
+
+async function selectPersona(id) {
+  selectedPersonaId = id;
+  document.querySelectorAll(".list-item").forEach(el => el.classList.remove("selected"));
+  const row = document.getElementById(`persona-row-${id}`);
+  if (row) row.classList.add("selected");
+
+  const det = document.getElementById("persona-detail");
+  det.innerHTML = `<div class="loading">Loading analytics…</div>`;
+
+  try {
+    const d = await apiFetch(`/admin/analytics/user/${id}`);
+    det.innerHTML = `
+      <div class="card-title">User #${id}</div>
+      <div style="margin-bottom:14px"><span class="pill pill-cat">${d.preferences}</span></div>
+      ${detailRow("Total Views",  d.total_views,  "var(--cyan)")}
+      ${detailRow("Total Clicks", d.total_clicks, "var(--green)")}
+      ${detailRow("CTR",          `${d.ctr}%`,    ctrColor(d.ctr))}
+      <div style="margin-top:16px">
+        <div style="font-size:11px;color:var(--muted);margin-bottom:6px">CTR Visual</div>
+        <div class="ctr-track" style="height:8px">
+          <div class="ctr-fill" style="width:${Math.min(d.ctr,100)}%;background:${ctrColor(d.ctr)}"></div>
+        </div>
+        <div style="font-size:11px;margin-top:4px;color:${ctrColor(d.ctr)}">${d.ctr}%</div>
+      </div>
+    `;
+  } catch (e) { det.innerHTML = `<div class="empty">Error: ${e.message}</div>`; }
+}
+
+function detailRow(key, val, color = "var(--text)") {
+  return `
+    <div class="detail-row">
+      <span class="detail-key">${key}</span>
+      <span class="detail-val" style="color:${color}">${val ?? "—"}</span>
+    </div>`;
+}
+
+async function createPersona() {
+  const prefs = document.getElementById("new-prefs").value.trim();
+  if (!prefs) { toast("Enter preferences first", "err"); return; }
+  try {
+    const r = await apiFetch("/admin/users", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ preferences: prefs }),
+    });
+    toast(`✓ Persona #${r.user_id} created`, "ok");
+    document.getElementById("new-prefs").value = "";
+    loadPersonas();
+    loadHome();
+  } catch (e) { toast(`✗ ${e.message}`, "err"); }
+}
+
+async function lookupUser() {
+  const uid = parseInt(document.getElementById("lookup-uid").value);
+  if (!uid) { toast("Enter a user ID", "err"); return; }
+  const out = document.getElementById("lookup-result");
+  out.innerHTML = `<div class="loading">Looking up…</div>`;
+  try {
+    const u = await apiFetch(`/users/${uid}`);
+    out.innerHTML = `
+      <div class="card" style="font-size:13px">
+        <div class="detail-row"><span class="detail-key">ID</span><span class="detail-val">${u.id}</span></div>
+        <div class="detail-row"><span class="detail-key">Preferences</span><span class="detail-val">${u.preferences}</span></div>
+        <div class="detail-row"><span class="detail-key">Created</span><span class="detail-val" style="font-size:12px">${new Date(u.created_at).toLocaleString()}</span></div>
+        <button class="btn btn-ghost btn-sm mt-3" onclick="selectPersona(${u.id});gotoPage('personas')">View Full Analytics →</button>
+      </div>`;
+  } catch (e) { out.innerHTML = `<div style="color:var(--red);font-size:12px">✗ ${e.message}</div>`; }
+}
+
+/* ── HISTORY ───────────────────────────────────────────── */
+async function loadHistory() {
+  const limit = document.getElementById("hist-limit").value;
+  const tbody = document.getElementById("hist-body");
+  tbody.innerHTML = `<tr><td colspan="7"><div class="loading">Loading…</div></td></tr>`;
+  try {
+    const data = await apiFetch(`/admin/history?limit=${limit}`);
+    if (!data.length) {
+      tbody.innerHTML = `<tr><td colspan="7"><div class="empty">No interactions logged yet</div></td></tr>`;
+      return;
+    }
+    tbody.innerHTML = data.map(row => `
+      <tr>
+        <td style="color:var(--muted)">${row.log_id}</td>
+        <td style="font-family:monospace;font-size:11px;color:var(--muted)">${row.timestamp}</td>
+        <td>${row.user_id}</td>
+        <td><span class="pill pill-cat">${row.user_prefs}</span></td>
+        <td style="font-weight:500;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${row.ad_title}</td>
+        <td>${variantPill(row.variant)}</td>
+        <td><span class="pill ${row.type === "click" ? "pill-click" : "pill-view"}">${row.type}</span></td>
+      </tr>
+    `).join("");
+  } catch (e) {
+    tbody.innerHTML = `<tr><td colspan="7"><div class="empty">Error: ${e.message}</div></td></tr>`;
+  }
+}
+
+async function logManual() {
+  const uid  = parseInt(document.getElementById("mi-uid").value);
+  const aid  = parseInt(document.getElementById("mi-aid").value);
+  const type = document.getElementById("mi-type").value;
+  if (!uid || !aid) { toast("Enter both User ID and Ad ID", "err"); return; }
+  try {
+    await apiFetch("/interactions/", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ user_id: uid, ad_id: aid, interaction_type: type }),
+    });
+    toast(`✓ Interaction logged (${type})`, "ok");
+    loadHistory();
+  } catch (e) { toast(`✗ ${e.message}`, "err"); }
+}
+
+/* ── ENHANCE AD ────────────────────────────────────────── */
+async function loadAds() {
+  const list = document.getElementById("ad-list");
+  list.innerHTML = `<div class="loading">Loading…</div>`;
+  try {
+    const ads = await apiFetch("/admin/ads");
+    if (!ads.length) { list.innerHTML = `<div class="empty">No ads yet</div>`; return; }
+    list.innerHTML = ads.map(a => `
+      <div class="list-item ${selectedAdId === a.id ? "selected" : ""}"
+           onclick="selectAd(${a.id})" id="ad-row-${a.id}">
+        <div class="list-id" style="background:var(--orange-soft);border-color:var(--orange);color:var(--orange)">${a.id}</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:13px;font-weight:600;margin-bottom:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${a.title}</div>
+          <div style="display:flex;gap:6px;align-items:center">
+            <span class="pill pill-cat">${a.category}</span>
+            ${variantPill(a.variant)}
+          </div>
+        </div>
+      </div>
+    `).join("");
+  } catch (e) { list.innerHTML = `<div class="empty">Error: ${e.message}</div>`; }
+}
+
+async function selectAd(id) {
+  selectedAdId = id;
+  document.querySelectorAll("#ad-list .list-item").forEach(el => el.classList.remove("selected"));
+  const row = document.getElementById(`ad-row-${id}`);
+  if (row) row.classList.add("selected");
+
+  const wrap = document.getElementById("ad-detail-wrap");
+  const det  = document.getElementById("ad-detail");
+  wrap.style.display = "block";
+  det.innerHTML = `<div class="loading">Loading…</div>`;
+
+  try {
+    const d = await apiFetch(`/admin/analytics/ad/${id}`);
+    det.innerHTML = `
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:12px">
+        <div>
+          <div style="font-size:16px;font-weight:800;margin-bottom:8px">${d.title}</div>
+          <div style="display:flex;gap:8px">
+            <span class="pill pill-cat">${d.category}</span>
+            ${variantPill(d.variant)}
+          </div>
+        </div>
+        <div style="display:flex;gap:24px">
+          ${miniStat("Views",  d.total_views,  "var(--cyan)")}
+          ${miniStat("Clicks", d.total_clicks, "var(--green)")}
+          ${miniStat("CTR",    `${d.ctr}%`,    ctrColor(d.ctr))}
+        </div>
+      </div>
+      <div style="margin-top:16px">
+        <div style="font-size:11px;color:var(--muted);margin-bottom:6px">Click-Through Rate</div>
+        <div class="ctr-track" style="height:8px">
+          <div class="ctr-fill" style="width:${Math.min(d.ctr,100)}%;background:${ctrColor(d.ctr)}"></div>
+        </div>
+        <div style="font-size:12px;margin-top:4px;color:${ctrColor(d.ctr)}">${d.ctr}%</div>
+      </div>
+    `;
+  } catch (e) { det.innerHTML = `<div class="empty">Error: ${e.message}</div>`; }
+}
+
+function miniStat(label, val, color) {
+  return `<div style="text-align:center">
+    <div style="font-size:22px;font-weight:800;color:${color};line-height:1">${val ?? "—"}</div>
+    <div style="font-size:11px;color:var(--muted);margin-top:2px">${label}</div>
+  </div>`;
+}
+
+async function createAd() {
+  const title    = document.getElementById("ad-title").value.trim();
+  const content  = document.getElementById("ad-content").value.trim();
+  const category = document.getElementById("ad-category").value.trim().toLowerCase();
+  const variant  = document.getElementById("ad-variant").value;
+
+  if (!title || !content || !category) { toast("Fill in all fields", "err"); return; }
+
+  try {
+    const ad = await apiFetch("/ads/", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ title, content, category, variant }),
+    });
+    toast(`✓ Ad #${ad.id} published`, "ok");
+    ["ad-title","ad-content","ad-category"].forEach(id => document.getElementById(id).value = "");
+    loadAds();
+    loadHome();
+  } catch (e) { toast(`✗ ${e.message}`, "err"); }
+}
+
+/* ── INIT ──────────────────────────────────────────────── */
+checkBackend();
+loadHome();
+
+// Auto-refresh backend status every 30s
+setInterval(checkBackend, 30000);
+</script>
+</body>
+</html>
