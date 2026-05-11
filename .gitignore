@@ -114,3 +114,11 @@ Thumbs.db
 # ----------------------
 *.bak
 *.tmp
+
+
+# Local agent/tooling folders
+.agents/
+.skills/
+
+# Firebase local state (optional)
+.firebase/
