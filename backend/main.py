@@ -19,6 +19,7 @@ app = FastAPI(
 )
 
 origins = [
+    "https://mablytic.web.app"
     "http://127.0.0.1:8081",
     "http://localhost:8081",
 ]
