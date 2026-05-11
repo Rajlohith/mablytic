@@ -19,7 +19,8 @@ app = FastAPI(
 )
 
 origins = [
-    "https://mablytic.web.app"
+    "https://mablytic.web.app",
+    "https://mablytic.firebaseapp.com",
     "http://127.0.0.1:8081",
     "http://localhost:8081",
 ]
@@ -31,6 +32,13 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.on_event("startup")
+def seed_demo_data_on_empty_database():
+    from seed_data import seed
+
+    seed()
 
 # ─── Password helpers ─────────────────────────────────────────────────────────
 # SHA-256 with a fixed app salt — sufficient for a demo; use bcrypt in prod.
