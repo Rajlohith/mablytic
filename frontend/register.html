@@ -4,7 +4,7 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
 <meta name="robots" content="noindex,nofollow,noarchive,nosnippet,noimageindex,nocache,max-snippet:0,max-image-preview:none,max-video-preview:-1">
-<title>ADWise — Create Account</title>
+<title>Mablytic - Create Account</title>
 <link rel="manifest" href="manifest.json"/>
 <meta name="theme-color" content="#0d1017"/>
 <style>
@@ -17,6 +17,7 @@
 body{
   font-family:'Inter',system-ui,sans-serif;
   background:var(--bg);color:var(--text);
+  overflow-x:hidden;
   min-height:100vh;display:flex;
   flex-direction:column;align-items:center;justify-content:center;padding:24px;
 }
@@ -132,14 +133,23 @@ select option{background:#1a1d2e}
 .success-icon{font-size:56px;margin-bottom:16px}
 .success-title{font-size:20px;font-weight:800;margin-bottom:8px}
 .success-sub{font-size:13px;color:var(--muted);margin-bottom:24px}
+@media(max-width:560px){
+  body{justify-content:flex-start;padding:16px 14px}
+  .card{padding:26px 18px;border-radius:16px;max-width:100%}
+  .card-subtitle{margin-left:0}
+  .form-row{grid-template-columns:1fr}
+  .prefs-grid{grid-template-columns:repeat(2,1fr)}
+  .btn-row{flex-direction:column}
+  .step-tab{font-size:10.5px}
+}
 </style>
 </head>
 <body>
 
 <div class="card">
   <div class="logo">
-    <div class="logo-icon">AW</div>
-    <span class="logo-name">ADWise</span>
+    <div class="logo-icon">M</div>
+    <span class="logo-name">Mablytic</span>
   </div>
   <div class="card-subtitle">Create your account</div>
 
@@ -240,7 +250,7 @@ select option{background:#1a1d2e}
   <!-- Success screen -->
   <div class="success-screen" id="success">
     <div class="success-icon">🎉</div>
-    <div class="success-title">Welcome to ADWise!</div>
+    <div class="success-title">Welcome to Mablytic!</div>
     <div class="success-sub">Your account has been created. Redirecting to login…</div>
     <button class="btn btn-primary" onclick="window.location.href='index.html'">Go to Login</button>
   </div>
@@ -250,6 +260,7 @@ select option{background:#1a1d2e}
   </div>
 </div>
 
+<script src="pwa.js"></script>
 <script>
 const API = "https://mablytic.onrender.com";
 let currentStep = 1;

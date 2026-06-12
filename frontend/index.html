@@ -4,7 +4,7 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
 <meta name="robots" content="noindex,nofollow,noarchive,nosnippet,noimageindex,nocache,max-snippet:0,max-image-preview:none,max-video-preview:-1">
-<title>ADWise — Login</title>
+<title>Mablytic - Login</title>
 <link rel="manifest" href="manifest.json"/>
 <meta name="theme-color" content="#0d1017"/>
 <style>
@@ -17,6 +17,7 @@
 body{
   font-family:'Inter',system-ui,sans-serif;
   background:var(--bg); color:var(--text);
+  overflow-x:hidden;
   min-height:100vh; display:flex;
   flex-direction:column; align-items:center; justify-content:center;
   padding:24px;
@@ -108,20 +109,26 @@ input:focus{border-color:var(--accent);}
   font-size:11px;color:var(--muted);text-align:center;margin-top:14px;
   padding:8px;border:1px dashed var(--border);border-radius:6px;
 }
+@media(max-width:520px){
+  body{justify-content:flex-start;padding:18px 14px}
+  .login-card{padding:28px 20px;border-radius:16px;max-width:100%}
+  .logo-name{font-size:20px}
+  .role-tab{font-size:12px}
+}
 </style>
 </head>
 <body>
 
 <div class="login-card">
   <div class="logo">
-    <div class="logo-icon">AW</div>
-    <span class="logo-name">ADWise</span>
+    <div class="logo-icon">M</div>
+    <span class="logo-name">Mablytic</span>
   </div>
 
   <!-- Role tabs -->
   <div class="role-tabs">
-    <button class="role-tab active" id="tab-user"  onclick="setRole('user')">👤 User</button>
-    <button class="role-tab"        id="tab-admin" onclick="setRole('admin')">🛡 Admin</button>
+    <button class="role-tab active" id="tab-user"  onclick="setRole('user')">User</button>
+    <button class="role-tab"        id="tab-admin" onclick="setRole('admin')">Admin</button>
   </div>
 
   <!-- Error -->
@@ -147,12 +154,13 @@ input:focus{border-color:var(--accent);}
   </div>
 </div>
 
+<script src="pwa.js"></script>
 <script>
 const API = "https://mablytic.onrender.com";
 let selectedRole = "user";
 
 // Already logged in? Redirect.
-const session = JSON.parse(localStorage.getItem("adwise_session") || "null");
+const session = window.MablyticPwa?.getSession() || null;
 if (session) {
   window.location.href = session.is_admin ? "admin.html" : "feed.html";
 }
@@ -161,7 +169,8 @@ function setRole(role) {
   selectedRole = role;
   document.getElementById("tab-user").classList.toggle("active",  role === "user");
   document.getElementById("tab-admin").classList.toggle("active", role === "admin");
-  document.getElementById("admin-hint").style.display = role === "admin" ? "block" : "none";
+  const hint = document.getElementById("admin-hint");
+  if (hint) hint.style.display = role === "admin" ? "block" : "none";
   document.getElementById("err").style.display = "none";
 }
 
@@ -201,7 +210,8 @@ async function doLogin() {
       throw new Error("Please use the Admin tab to log in as admin.");
     }
 
-    localStorage.setItem("adwise_session", JSON.stringify(user));
+    window.MablyticPwa?.setSession(user);
+    window.MablyticPwa?.enableAdNotifications();
     window.location.href = user.is_admin ? "admin.html" : "feed.html";
   } catch (e) {
     showErr(e.message);

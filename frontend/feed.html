@@ -4,7 +4,7 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
 <meta name="robots" content="noindex,nofollow,noarchive,nosnippet,noimageindex,nocache,max-snippet:0,max-image-preview:none,max-video-preview:-1">
-<title>ADWise Feed</title>
+<title>Mablytic Feed</title>
 <link rel="manifest" href="manifest.json"/>
 <meta name="theme-color" content="#0d1017"/>
 <style>
@@ -15,22 +15,24 @@
   --green:#22c55e;--orange:#f97316;--red:#ef4444;--cyan:#06b6d4;
 }
 
+html,body{width:100%;max-width:100%;overflow-x:hidden}
 body{font-family:'Georgia',serif;background:var(--bg);color:var(--text);min-height:100vh}
+img,video{max-width:100%}
 
 /* ── Top bar ─────────────────────────────────────────────── */
 .topbar{
   background:var(--surface);border-bottom:1px solid var(--border);
-  padding:0 32px;height:56px;
+  padding:0 32px;min-height:56px;
   display:flex;align-items:center;gap:14px;
   position:sticky;top:0;z-index:100;
 }
-.topbar-logo{display:flex;align-items:center;gap:9px}
+.topbar-logo{display:flex;align-items:center;gap:9px;min-width:0;flex-shrink:0}
 .logo-icon{
   width:32px;height:32px;border-radius:8px;background:var(--accent);
   display:flex;align-items:center;justify-content:center;
   font-weight:800;font-size:13px;color:#fff;font-family:'Inter',sans-serif;
 }
-.topbar-name{font-family:'Inter',sans-serif;font-weight:800;font-size:16px}
+.topbar-name{font-family:'Inter',sans-serif;font-weight:800;font-size:16px;white-space:nowrap}
 .topbar-date{
   font-family:'Inter',sans-serif;font-size:11px;color:var(--muted);
   border-left:1px solid var(--border);padding-left:14px;
@@ -38,7 +40,7 @@ body{font-family:'Georgia',serif;background:var(--bg);color:var(--text);min-heig
 .spacer{flex:1}
 .topbar-user{
   font-family:'Inter',sans-serif;font-size:12px;color:var(--muted);
-  display:flex;align-items:center;gap:8px;
+  display:flex;align-items:center;gap:8px;min-width:0;
 }
 .user-chip{
   background:rgba(91,104,255,.15);border:1px solid rgba(91,104,255,.3);
@@ -55,7 +57,7 @@ body{font-family:'Georgia',serif;background:var(--bg);color:var(--text);min-heig
 
 /* ── Layout ──────────────────────────────────────────────── */
 .layout{
-  max-width:1100px;margin:0 auto;
+  width:min(100%,1100px);margin:0 auto;
   padding:28px 24px;
   display:grid;
   grid-template-columns:1fr 300px;
@@ -74,6 +76,7 @@ body{font-family:'Georgia',serif;background:var(--bg);color:var(--text);min-heig
 .article{
   background:var(--card);border:1px solid var(--border);
   border-radius:12px;overflow:hidden;margin-bottom:20px;
+  min-width:0;
 }
 
 /* Image placeholder — swap for <img> in the future */
@@ -95,7 +98,7 @@ body{font-family:'Georgia',serif;background:var(--bg);color:var(--text);min-heig
 
 .article-body{padding:20px 22px}
 .article-meta{
-  display:flex;align-items:center;gap:10px;margin-bottom:10px;
+  display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap;
 }
 .article-cat{
   font-family:'Inter',sans-serif;font-size:10px;font-weight:700;
@@ -113,13 +116,14 @@ body{font-family:'Georgia',serif;background:var(--bg);color:var(--text);min-heig
 .article-title{
   font-size:19px;font-weight:700;line-height:1.4;
   margin-bottom:10px;color:var(--text);
+  overflow-wrap:anywhere;
 }
 .article-author{
   font-family:'Inter',sans-serif;font-size:11px;color:var(--muted);
   margin-bottom:12px;
 }
 .article-text{
-  font-size:14px;line-height:1.8;color:#b0b8d0;
+  font-size:14px;line-height:1.8;color:#b0b8d0;overflow-wrap:anywhere;
 }
 .read-more{
   font-family:'Inter',sans-serif;font-size:12px;font-weight:600;
@@ -132,6 +136,7 @@ body{font-family:'Georgia',serif;background:var(--bg);color:var(--text);min-heig
   background:var(--card);border:1px solid var(--border);
   border-left:3px solid var(--accent);
   border-radius:12px;overflow:hidden;margin-bottom:20px;
+  min-width:0;
 }
 
 /* Future image slot inside in-feed ad */
@@ -158,6 +163,7 @@ body{font-family:'Georgia',serif;background:var(--bg);color:var(--text);min-heig
 }
 .ad-content{font-size:13px;color:#9098b8;line-height:1.7;margin-bottom:14px}
 .ad-footer{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px}
+.ad-actions{display:flex;gap:8px;flex-wrap:wrap}
 .ad-cat{
   font-family:'Inter',sans-serif;font-size:10px;color:var(--muted);
 }
@@ -223,6 +229,23 @@ body{font-family:'Georgia',serif;background:var(--bg);color:var(--text);min-heig
   .layout{grid-template-columns:1fr}
   .sidebar-col{display:none}
 }
+@media(max-width:600px){
+  .topbar{height:auto;padding:10px 14px;gap:10px;flex-wrap:wrap}
+  .topbar-date{display:none}
+  .spacer{display:none}
+  .topbar-user{margin-left:auto;justify-content:flex-end;flex-wrap:wrap;gap:6px}
+  .topbar-user>span{display:flex;align-items:center;gap:5px;min-width:0}
+  .user-chip{max-width:96px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .btn-logout{padding:5px 10px}
+  .layout{padding:18px 14px}
+  .section-label{margin-bottom:16px}
+  .article-body,.ad-inner{padding:16px}
+  .article-title{font-size:18px;line-height:1.35}
+  .article-text{font-size:14px;line-height:1.7}
+  .ad-footer{align-items:flex-start}
+  .ad-actions{width:100%}
+  .ad-actions .btn-refresh,.ad-actions .btn-learn{flex:1}
+}
 </style>
 </head>
 <body>
@@ -230,8 +253,8 @@ body{font-family:'Georgia',serif;background:var(--bg);color:var(--text);min-heig
 <!-- Top bar -->
 <header class="topbar">
   <div class="topbar-logo">
-    <div class="logo-icon">AW</div>
-    <span class="topbar-name">ADWise</span>
+    <div class="logo-icon">M</div>
+    <span class="topbar-name">Mablytic</span>
   </div>
   <span class="topbar-date" id="today-date"></span>
   <div class="spacer"></div>
@@ -320,7 +343,7 @@ body{font-family:'Georgia',serif;background:var(--bg);color:var(--text);min-heig
           <div class="ad-content" id="ad1-content"></div>
           <div class="ad-footer">
             <span class="ad-cat" id="ad1-cat"></span>
-            <div style="display:flex;gap:8px">
+            <div class="ad-actions">
               <button class="btn-refresh" onclick="loadInfeedAd(1)">↻ New Ad</button>
               <button class="btn-learn"  onclick="clickAd(1)">Learn More</button>
             </div>
@@ -400,7 +423,7 @@ body{font-family:'Georgia',serif;background:var(--bg);color:var(--text);min-heig
           <div class="ad-content" id="ad2-content"></div>
           <div class="ad-footer">
             <span class="ad-cat" id="ad2-cat"></span>
-            <div style="display:flex;gap:8px">
+            <div class="ad-actions">
               <button class="btn-refresh" onclick="loadInfeedAd(2)">↻ New Ad</button>
               <button class="btn-learn"  onclick="clickAd(2)">Learn More</button>
             </div>
@@ -477,11 +500,12 @@ body{font-family:'Georgia',serif;background:var(--bg);color:var(--text);min-heig
   </aside>
 </div>
 
+<script src="pwa.js"></script>
 <script>
 const API = "https://mablytic.onrender.com";
 
 // ── Auth guard ────────────────────────────────────────────────────────────────
-const session = JSON.parse(localStorage.getItem("adwise_session") || "null");
+const session = window.MablyticPwa?.getSession() || null;
 if (!session) { window.location.href = "index.html"; }
 const userId = session?.id;
 
@@ -503,7 +527,7 @@ prefs.forEach(p => {
 
 // ── Logout ────────────────────────────────────────────────────────────────────
 function logout() {
-  localStorage.removeItem("adwise_session");
+  window.MablyticPwa?.clearSession();
   window.location.href = "index.html";
 }
 
@@ -511,7 +535,38 @@ function logout() {
 async function fetchAd() {
   const r = await fetch(`${API}/serve-ad/${userId}`);
   if (!r.ok) throw new Error("No ads available.");
-  return r.json();
+  const ad = await r.json();
+  window.MablyticPwa?.cacheAd(ad);
+  return ad;
+}
+
+async function getAdForSlot(slot) {
+  try {
+    return await fetchAd();
+  } catch {
+    const cached = window.MablyticPwa?.getCachedAd(slot);
+    if (cached) window.MablyticPwa?.cacheAd(cached);
+    return cached;
+  }
+}
+
+function renderAdImage(wrapper, ad) {
+  wrapper.textContent = "";
+  if (!ad?.image_url) {
+    wrapper.classList.remove("has-image");
+    return;
+  }
+
+  const img = document.createElement("img");
+  img.src = ad.image_url;
+  img.alt = ad.title || "Sponsored ad";
+  img.loading = "lazy";
+  img.onerror = () => {
+    wrapper.textContent = "";
+    wrapper.classList.remove("has-image");
+  };
+  wrapper.classList.add("has-image");
+  wrapper.appendChild(img);
 }
 
 async function logInteraction(adId, type) {
@@ -532,7 +587,8 @@ async function loadInfeedAd(slot) {
   loadedEl.style.display = "none";
 
   try {
-    const ad = await fetchAd();
+    const ad = await getAdForSlot(slot);
+    if (!ad) throw new Error("No cached ad available.");
     adState[slot] = { ad_id: ad.id };
     skIds.forEach(id => { const el = document.getElementById(id); if(el) el.style.display="none"; });
     document.getElementById(`ad${slot}-title`).textContent   = ad.title;
@@ -540,17 +596,16 @@ async function loadInfeedAd(slot) {
     document.getElementById(`ad${slot}-cat`).textContent     = `Category: ${ad.category} · Variant ${ad.variant}`;
     loadedEl.style.display = "block";
 
-    // Show image if present
-    const imgWrap = document.getElementById(`infeed-img-${slot}`);
-    if (ad.image_url) {
-      imgWrap.classList.add("has-image");
-      imgWrap.innerHTML = `<img src="${ad.image_url}" alt="${ad.title}"/>`;
-    } else {
-      imgWrap.classList.remove("has-image");
-    }
+    renderAdImage(document.getElementById(`infeed-img-${slot}`), ad);
 
-    await logInteraction(ad.id, "view");
-  } catch { loadedEl.innerHTML = '<div style="color:var(--muted);font-size:12px;padding:8px">Unable to load ad.</div>'; loadedEl.style.display="block"; }
+    if (typeof ad.id === "number") await logInteraction(ad.id, "view");
+  } catch {
+    skIds.forEach(id => { const el = document.getElementById(id); if(el) el.style.display="none"; });
+    document.getElementById(`ad${slot}-title`).textContent = "Ad preview unavailable";
+    document.getElementById(`ad${slot}-content`).textContent = "Reconnect to refresh sponsored content.";
+    document.getElementById(`ad${slot}-cat`).textContent = "";
+    loadedEl.style.display="block";
+  }
 }
 
 // Slot 3 — sidebar
@@ -558,32 +613,29 @@ async function loadSidebarAd() {
   document.getElementById("sidebar-sk").style.display="block";
   document.getElementById("sidebar-loaded").style.display="none";
   try {
-    const ad = await fetchAd();
+    const ad = await getAdForSlot(3);
+    if (!ad) throw new Error("No cached ad available.");
     adState[3] = { ad_id: ad.id };
     document.getElementById("sb-title").textContent   = ad.title;
     document.getElementById("sb-content").textContent = ad.content;
     document.getElementById("sb-cat").textContent     = `${ad.category} · Variant ${ad.variant}`;
 
-    const imgEl = document.getElementById("sidebar-img");
-    if (ad.image_url) {
-      imgEl.classList.add("has-image");
-      imgEl.innerHTML = `<img src="${ad.image_url}" alt="${ad.title}"/>`;
-    } else {
-      imgEl.classList.remove("has-image");
-    }
+    renderAdImage(document.getElementById("sidebar-img"), ad);
 
     document.getElementById("sidebar-sk").style.display="none";
     document.getElementById("sidebar-loaded").style.display="block";
-    await logInteraction(ad.id, "view");
-  } catch {}
+    if (typeof ad.id === "number") await logInteraction(ad.id, "view");
+  } catch {
+    document.getElementById("sidebar-sk").style.display="none";
+  }
 }
 
 // Click handlers
 async function clickAd(slot) {
   const st = adState[slot];
   if (!st) return;
-  await logInteraction(st.ad_id, "click");
-  alert(`Thanks for your interest! (Ad #${st.ad_id} — in a live app this opens the product page.)`);
+  if (typeof st.ad_id === "number") await logInteraction(st.ad_id, "click");
+  alert("Thanks for your interest! In a live app this opens the product page.");
   // Load a fresh ad after click
   if (slot === 3) loadSidebarAd();
   else loadInfeedAd(slot);
@@ -596,6 +648,8 @@ loadSidebarAd();
 
 // Auto-refresh sidebar ad every 60 seconds
 setInterval(loadSidebarAd, 60000);
+window.MablyticPwa?.enableAdNotifications();
+window.MablyticPwa?.scheduleAdNotifications(() => window.MablyticPwa?.getLatestAd());
 </script>
 </body>
 </html>
