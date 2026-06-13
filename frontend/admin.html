@@ -41,7 +41,8 @@
   --border:#dde2f0;--text:#1a1f38;--muted:#7080b0;
 }
 *{font-family:'Inter',system-ui,sans-serif}
-html,body{width:100%;height:100%;max-width:100%;overflow-x:hidden}
+html,body{overflow-x:hidden;width:100%;max-width:100vw}
+html,body{width:100%;height:100%}
 body{background:var(--bg);color:var(--text);overflow:hidden;font-size:14px}
 
 /* ── Sidebar ─────────────────────────────────────────────── */
@@ -82,7 +83,7 @@ body.sidebar-open .sidebar-backdrop{opacity:1;pointer-events:auto}
 .main{position:fixed;inset:0;z-index:1;width:100%;min-width:0;display:flex;flex-direction:column;overflow:hidden}
 .topbar{background:var(--sidebar);border-bottom:1px solid var(--border);padding:0 24px;height:52px;
   display:flex;align-items:center;gap:10px;flex-shrink:0}
-.topbar-title{font-size:14px;font-weight:700;min-width:0;overflow-wrap:anywhere}
+.topbar-title{font-size:14px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;max-width:180px}
 .badge{font-size:10px;font-weight:700;padding:2px 8px;border-radius:4px;text-transform:uppercase;letter-spacing:.06em}
 .badge-admin{background:var(--green-soft);color:var(--green)}
 .spacer{flex:1}
@@ -90,13 +91,13 @@ body.sidebar-open .sidebar-backdrop{opacity:1;pointer-events:auto}
   background:var(--card);border:1px solid var(--border);border-radius:20px;padding:4px 12px}
 .dot{width:7px;height:7px;border-radius:50%;background:var(--muted);transition:background .3s}
 .dot.online{background:var(--green)} .dot.offline{background:var(--red)}
-.content{flex:1;min-width:0;overflow-y:auto;padding:24px 28px}
+.content{flex:1;overflow-y:auto;padding:24px 28px}
 
 /* ── Pages ────────────────────────────────────────────────── */
-.page{display:none;min-width:0} .page.active{display:block}
+.page{display:none} .page.active{display:block}
 
 /* ── Cards ────────────────────────────────────────────────── */
-.card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px 22px;min-width:0}
+.card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px 22px}
 .card-title{font-size:13px;font-weight:700;margin-bottom:14px}
 
 /* ── Stats ────────────────────────────────────────────────── */
@@ -132,14 +133,30 @@ body.sidebar-open .sidebar-backdrop{opacity:1;pointer-events:auto}
 .section-title{font-size:14px;font-weight:700}
 
 /* ── Grid ─────────────────────────────────────────────────── */
-.grid-2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:768px){
+  .grid-2{grid-template-columns:1fr}
+  .actions-grid{grid-template-columns:1fr 1fr}
+  .stats-row{grid-template-columns:1fr 1fr}
+  .topbar{padding:0 12px;gap:6px}
+  .topbar-title{font-size:12px;max-width:120px}
+  .form-row{grid-template-columns:1fr}
+  .tbl-wrap{font-size:11px}
+  .tbl-wrap th,.tbl-wrap td{padding:8px 10px}
+  .content{padding:16px}
+  .card{padding:16px}
+}
+@media(max-width:400px){
+  .stats-row{grid-template-columns:1fr}
+  .backend-badge span{display:none}
+}
 
 /* ── Table ────────────────────────────────────────────────── */
-.tbl-wrap{overflow-x:visible;border-radius:12px}
+.tbl-wrap{overflow-x:auto;border-radius:12px}
 table{width:100%;border-collapse:collapse;font-size:13px}
 thead th{text-align:left;padding:10px 14px;color:var(--muted);font-size:10.5px;font-weight:700;
   text-transform:uppercase;letter-spacing:.08em;border-bottom:1px solid var(--border);white-space:nowrap}
-tbody td{padding:11px 14px;border-bottom:1px solid var(--border);color:var(--text);overflow-wrap:anywhere}
+tbody td{padding:11px 14px;border-bottom:1px solid var(--border);color:var(--text)}
 tbody tr:last-child td{border-bottom:none}
 tbody tr:hover td{background:var(--card-hover)}
 
@@ -354,12 +371,8 @@ select option{background:#1a1d2e}
           </div>
         </div>
       </div>
-      <div class="section-header mb-4"><span class="section-title">Click-Through Rate - All Ads</span></div>
-      <div class="card mb-5">
-        <div class="chart-outer">
-          <div class="chart-bars" id="an-chart"><div class="loading" style="width:100%">Loading...</div></div>
-        </div>
-      </div>
+
+
       <div class="section-header mb-4"><span class="section-title">Per-Ad Analytics (GET /admin/analytics)</span><button class="btn btn-ghost btn-sm" onclick="loadAnalytics()">↻</button></div>
       <div class="card" style="padding:0;overflow:hidden">
         <div class="tbl-wrap"><table>
@@ -535,14 +548,14 @@ select option{background:#1a1d2e}
 const API = "https://mablytic.onrender.com";
 
 // ── Auth guard ────────────────────────────────────────────
-const session = JSON.parse(localStorage.getItem("adwise_session") || "null");
+const session = JSON.parse(localStorage.getItem("mablytic_session") || localStorage.getItem("adwise_session") || "null");
 if (!session || !session.is_admin) { window.location.href = "index.html"; }
 document.getElementById("admin-name").textContent     = session?.first_name || "Admin";
 document.getElementById("admin-username").textContent = "@" + (session?.username || "admin");
 document.getElementById("admin-av").textContent       = (session?.first_name?.[0] || "A").toUpperCase();
 
 function logout() {
-  localStorage.removeItem("adwise_session");
+  localStorage.removeItem("mablytic_session"); localStorage.removeItem("adwise_session");
   window.location.href = "index.html";
 }
 
