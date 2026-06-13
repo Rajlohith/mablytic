@@ -5,22 +5,19 @@
 fastapi==0.115.0
 uvicorn[standard]==0.30.6
 
-# ── Database (SQLite via SQLAlchemy) ──────────────────────────────────
+# ── ORM ───────────────────────────────────────────────────────────────
 sqlalchemy==2.0.36
+
+# ── PostgreSQL driver (for Neon.tech on Render) ───────────────────────
+psycopg2-binary==2.9.10
 
 # ── Data validation ───────────────────────────────────────────────────
 pydantic==2.9.2
 
-# ── Push notifications (Web Push / VAPID) ────────────────────────────
+# ── Push notifications ────────────────────────────────────────────────
 pywebpush==2.0.0
 cryptography==43.0.3
 py-vapid==1.9.1
 
 # ── Multipart form support ────────────────────────────────────────────
 python-multipart==0.0.12
-
-# ── CORS (included with FastAPI, listed for clarity) ─────────────────
-# starlette is a FastAPI dependency — no separate install needed
-
-# ── Optional: production ASGI server (instead of uvicorn dev mode) ───
-# gunicorn==23.0.0
