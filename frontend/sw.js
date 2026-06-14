@@ -7,7 +7,7 @@
      All other API → Pass-through (never cached)
    ═══════════════════════════════════════════════════════════════════ */
 
-const CACHE_VERSION = 'mablytic-v5';
+const CACHE_VERSION = 'mablytic-v6';
 const API_HOST      = 'mablytic.onrender.com';
 
 const PRECACHE_URLS = [
@@ -40,6 +40,12 @@ self.addEventListener('activate', event => {
       ))
       .then(() => self.clients.claim())
   );
+});
+
+self.addEventListener('message', event => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
 });
 
 // ── Fetch ────────────────────────────────────────────────────────────

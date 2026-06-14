@@ -545,7 +545,9 @@ select option{background:#1a1d2e}
 <div id="toast"></div>
 
 <script>
-const API = "https://mablytic.onrender.com";
+const API = (location.hostname === "localhost" || location.hostname === "127.0.0.1")
+  ? "http://127.0.0.1:8001"
+  : "https://mablytic.onrender.com";
 
 // ── Auth guard ────────────────────────────────────────────
 const session = JSON.parse(localStorage.getItem("mablytic_session") || localStorage.getItem("adwise_session") || "null");

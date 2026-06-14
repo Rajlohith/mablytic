@@ -157,31 +157,34 @@ body{font-family:'Georgia',serif;background:var(--bg);color:var(--text);min-heig
   align-items:center;gap:4px;margin-top:10px
 }
 
-/* ── In-feed ad ──────────────────────────────────────────── */
-.infeed-ad{
+/* ── In-feed promo card ─────────────────────────────────── */
+.promo-card{
   background:var(--card);border:1px solid var(--border);
   border-left:3px solid var(--accent);
   border-radius:12px;overflow:hidden;margin-bottom:16px
 }
-.ad-inner{padding:16px}
-.ad-badge-row{display:flex;align-items:center;gap:6px;margin-bottom:10px}
-.ad-badge{
+.promo-inner{padding:16px}
+.promo-badge-row{display:flex;align-items:center;gap:6px;margin-bottom:10px}
+.promo-badge{
   font-family:'Inter',sans-serif;font-size:9px;font-weight:700;
   background:rgba(91,104,255,.15);color:var(--accent);
   border:1px solid rgba(91,104,255,.3);
   border-radius:3px;padding:2px 7px;text-transform:uppercase;letter-spacing:.08em
 }
-.cache-badge{
+.promo-cache-badge{
   font-family:'Inter',sans-serif;font-size:9px;font-weight:700;
   background:rgba(249,115,22,.15);color:var(--orange);
   border:1px solid rgba(249,115,22,.3);
   border-radius:3px;padding:2px 7px;text-transform:uppercase;letter-spacing:.06em;display:none
 }
-.cache-badge.show{display:inline-block}
-.ad-title{font-size:15px;font-weight:700;margin-bottom:6px;line-height:1.4}
-.ad-content{font-size:12px;color:#9098b8;line-height:1.7;margin-bottom:12px}
-.ad-footer{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px}
-.ad-cat-label{font-family:'Inter',sans-serif;font-size:10px;color:var(--muted)}
+.promo-cache-badge.show{display:inline-block}
+.promo-image-wrap{margin:0 0 10px 0;display:none}
+.promo-image-wrap img{width:100%;height:120px;object-fit:cover;border-radius:8px;border:1px solid var(--border)}
+.promo-headline{font-size:15px;font-weight:700;margin-bottom:6px;line-height:1.4;display:block!important;visibility:visible!important;opacity:1!important}
+.promo-body{font-size:12px;color:#9098b8;line-height:1.7;margin-bottom:12px;display:block!important;visibility:visible!important;opacity:1!important}
+.promo-footer{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px}
+.promo-meta{font-family:'Inter',sans-serif;font-size:10px;color:var(--muted);display:block!important;visibility:visible!important;opacity:1!important}
+.promo-error{display:none;color:var(--muted);font-size:12px;padding:4px 0}
 .btn-learn{
   background:var(--accent);color:#fff;border:none;
   border-radius:6px;padding:7px 16px;font-size:12px;
@@ -299,24 +302,24 @@ body{font-family:'Georgia',serif;background:var(--bg);color:var(--text);min-heig
   </article>
 
   <!-- ── In-feed Ad Slot 1 ── -->
-  <div class="infeed-ad" id="ad-slot-1">
-    <div class="ad-inner">
-      <div class="ad-badge-row">
-        <span class="ad-badge">Sponsored</span>
-        <span class="cache-badge" id="cache-badge-1">📦 Cached</span>
+  <div class="promo-card" id="promo-slot-1">
+    <div class="promo-inner">
+      <div class="promo-badge-row">
+        <span class="promo-badge">Sponsored</span>
+        <span class="promo-cache-badge" id="promo-cache-badge-1">📦 Cached</span>
       </div>
-      <!-- Skeleton -->
-      <div id="sk1">
+      <div id="promo-sk1">
         <div class="skeleton" style="height:16px;width:70%;margin-bottom:8px"></div>
         <div class="skeleton" style="height:11px;width:100%;margin-bottom:5px"></div>
         <div class="skeleton" style="height:11px;width:80%"></div>
       </div>
-      <!-- Loaded -->
-      <div id="ad1-loaded" style="display:none">
-        <div class="ad-title" id="ad1-title"></div>
-        <div class="ad-content" id="ad1-content"></div>
-        <div class="ad-footer">
-          <span class="ad-cat-label" id="ad1-cat"></span>
+      <div id="promo1-error" class="promo-error"></div>
+      <div id="promo1-loaded" style="display:none">
+        <div class="promo-image-wrap" id="promo1-image-wrap"><img id="promo1-image" alt="Sponsored image"></div>
+        <div class="promo-headline" id="promo1-headline"></div>
+        <div class="promo-body" id="promo1-body"></div>
+        <div class="promo-footer">
+          <span class="promo-meta" id="promo1-meta"></span>
           <div style="display:flex;gap:8px">
             <button class="btn-refresh" onclick="loadAd(1)">↻</button>
             <button class="btn-learn" onclick="clickAd(1)">Learn More</button>
@@ -357,22 +360,24 @@ body{font-family:'Georgia',serif;background:var(--bg);color:var(--text);min-heig
   </article>
 
   <!-- ── In-feed Ad Slot 2 ── -->
-  <div class="infeed-ad" id="ad-slot-2">
-    <div class="ad-inner">
-      <div class="ad-badge-row">
-        <span class="ad-badge">Sponsored</span>
-        <span class="cache-badge" id="cache-badge-2">📦 Cached</span>
+  <div class="promo-card" id="promo-slot-2">
+    <div class="promo-inner">
+      <div class="promo-badge-row">
+        <span class="promo-badge">Sponsored</span>
+        <span class="promo-cache-badge" id="promo-cache-badge-2">📦 Cached</span>
       </div>
-      <div id="sk2">
+      <div id="promo-sk2">
         <div class="skeleton" style="height:16px;width:65%;margin-bottom:8px"></div>
         <div class="skeleton" style="height:11px;width:100%;margin-bottom:5px"></div>
         <div class="skeleton" style="height:11px;width:75%"></div>
       </div>
-      <div id="ad2-loaded" style="display:none">
-        <div class="ad-title" id="ad2-title"></div>
-        <div class="ad-content" id="ad2-content"></div>
-        <div class="ad-footer">
-          <span class="ad-cat-label" id="ad2-cat"></span>
+      <div id="promo2-error" class="promo-error"></div>
+      <div id="promo2-loaded" style="display:none">
+        <div class="promo-image-wrap" id="promo2-image-wrap"><img id="promo2-image" alt="Sponsored image"></div>
+        <div class="promo-headline" id="promo2-headline"></div>
+        <div class="promo-body" id="promo2-body"></div>
+        <div class="promo-footer">
+          <span class="promo-meta" id="promo2-meta"></span>
           <div style="display:flex;gap:8px">
             <button class="btn-refresh" onclick="loadAd(2)">↻</button>
             <button class="btn-learn" onclick="clickAd(2)">Learn More</button>
@@ -400,7 +405,9 @@ body{font-family:'Georgia',serif;background:var(--bg);color:var(--text);min-heig
 </div><!-- /feed-container -->
 
 <script>
-const API = "https://mablytic.onrender.com";
+const API = (location.hostname === "localhost" || location.hostname === "127.0.0.1")
+  ? "http://127.0.0.1:8001"
+  : "https://mablytic.onrender.com";
 const SESSION_KEY = "mablytic_session";
 const AD_CACHE_KEY = "mablytic_ad_cache";
 
@@ -416,7 +423,9 @@ if (!session) { window.location.href = "index.html"; }
 if (localStorage.getItem("adwise_session") && !localStorage.getItem(SESSION_KEY)) {
   localStorage.setItem(SESSION_KEY, localStorage.getItem("adwise_session"));
 }
-const userId = session?.id;
+const userId = Number.isFinite(Number(session?.id)) && Number(session?.id) > 0
+  ? Number(session?.id)
+  : 1;
 
 // ── Ad state ──────────────────────────────────────────────
 const adState = { 1: null, 2: null };
@@ -472,78 +481,122 @@ window.addEventListener('online',  updateOnlineStatus);
 window.addEventListener('offline', updateOnlineStatus);
 updateOnlineStatus();
 
+function isValidAd(ad) {
+  return !!ad && typeof ad === 'object' &&
+    typeof ad.title === 'string' && ad.title.trim().length > 0 &&
+    typeof ad.content === 'string' && ad.content.trim().length > 0;
+}
+
 // ── Ad cache helpers (localStorage) ──────────────────────
 function getCachedAds() {
   try { return JSON.parse(localStorage.getItem(AD_CACHE_KEY) || "{}"); }
   catch { return {}; }
 }
 function cacheAd(slot, ad) {
+  if (!isValidAd(ad)) return;
   const c = getCachedAds();
   c[slot] = { ad, ts: Date.now() };
   localStorage.setItem(AD_CACHE_KEY, JSON.stringify(c));
 }
 function getCachedAd(slot) {
-  const c = getCachedAds();
-  return c[slot]?.ad || null;
+  const ad = getCachedAds()[slot]?.ad;
+  return isValidAd(ad) ? ad : null;
 }
 
 // ── Fetch ad — network first, cache fallback ──────────────
 async function fetchAdWithFallback(slot) {
+  const tryFetch = async (id) => {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 12000);
+    const r = await fetch(`${API}/serve-ad/${id}`, { signal: controller.signal });
+    clearTimeout(timeoutId);
+    if (!r.ok) {
+      const detail = await r.json().catch(() => ({}));
+      throw new Error(detail.detail || `API error (${r.status})`);
+    }
+    const ad = await r.json();
+    if (!isValidAd(ad)) throw new Error("Malformed ad payload");
+    cacheAd(slot, ad);
+    return { ad, fromCache: false };
+  };
+
   if (isOnline) {
     try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 12000); // 12s timeout for Render cold start
-      const r = await fetch(`${API}/serve-ad/${userId}`, { signal: controller.signal });
-      clearTimeout(timeoutId);
-      if (!r.ok) throw new Error("API error");
-      const ad = await r.json();
-      cacheAd(slot, ad); // Store in cache
-      return { ad, fromCache: false };
+      return await tryFetch(userId);
     } catch (err) {
-      // Network failed — try cache
       const cached = getCachedAd(slot);
       if (cached) return { ad: cached, fromCache: true };
+      if (userId !== 1) {
+        try {
+          return await tryFetch(1);
+        } catch {}
+      }
       throw err;
     }
-  } else {
-    // Definitely offline — go straight to cache
-    const cached = getCachedAd(slot);
-    if (cached) return { ad: cached, fromCache: true };
-    throw new Error("Offline and no cached ad available");
   }
+
+  const cached = getCachedAd(slot);
+  if (cached) return { ad: cached, fromCache: true };
+  throw new Error("Offline and no cached ad available");
 }
 
-// ── Render an ad into a slot ──────────────────────────────
 function renderAd(slot, ad, fromCache) {
-  document.getElementById(`sk${slot}`).style.display = "none";
-  document.getElementById(`ad${slot}-title`).textContent   = ad.title;
-  document.getElementById(`ad${slot}-content`).textContent = ad.content;
-  document.getElementById(`ad${slot}-cat`).textContent     = `${ad.category} · Variant ${ad.variant}`;
-  document.getElementById(`ad${slot}-loaded`).style.display = "block";
-  const badge = document.getElementById(`cache-badge-${slot}`);
+  const title = document.getElementById(`promo${slot}-headline`);
+  const body = document.getElementById(`promo${slot}-body`);
+  const meta = document.getElementById(`promo${slot}-meta`);
+  const loaded = document.getElementById(`promo${slot}-loaded`);
+  const imageWrap = document.getElementById(`promo${slot}-image-wrap`);
+  const image = document.getElementById(`promo${slot}-image`);
+  const badge = document.getElementById(`promo-cache-badge-${slot}`);
+  const error = document.getElementById(`promo${slot}-error`);
+
+  if (!title || !body || !meta || !loaded || !badge || !error) return;
+
+  document.getElementById(`promo-sk${slot}`).style.display = "none";
+  title.textContent = ad.title || "";
+  body.textContent = ad.content || "";
+  meta.textContent = `${ad.category || "General"} · Variant ${ad.variant || 1}`;
+
+  if (ad.image_url && String(ad.image_url).trim()) {
+    image.src = ad.image_url;
+    image.alt = ad.title || "Sponsored image";
+    imageWrap.style.display = "block";
+  } else {
+    image.removeAttribute("src");
+    imageWrap.style.display = "none";
+  }
+
+  error.style.display = "none";
+  loaded.style.display = "block";
   badge.classList.toggle("show", fromCache);
 }
 
-// ── Load ad for a slot ────────────────────────────────────
 async function loadAd(slot) {
-  // Reset to skeleton
-  document.getElementById(`sk${slot}`).style.display = "block";
-  document.getElementById(`ad${slot}-loaded`).style.display = "none";
-  document.getElementById(`cache-badge-${slot}`).classList.remove("show");
+  const skeleton = document.getElementById(`promo-sk${slot}`);
+  const loaded = document.getElementById(`promo${slot}-loaded`);
+  const badge = document.getElementById(`promo-cache-badge-${slot}`);
+  const error = document.getElementById(`promo${slot}-error`);
+
+  if (skeleton) skeleton.style.display = "block";
+  if (loaded) loaded.style.display = "none";
+  if (badge) badge.classList.remove("show");
+  if (error) {
+    error.textContent = "";
+    error.style.display = "none";
+  }
 
   try {
     const { ad, fromCache } = await fetchAdWithFallback(slot);
     adState[slot] = { ad_id: ad.id };
     renderAd(slot, ad, fromCache);
     if (!fromCache) await logInteraction(ad.id, "view");
-  } catch {
-    document.getElementById(`sk${slot}`).style.display = "none";
-    document.getElementById(`ad${slot}-loaded`).innerHTML = `
-      <div style="color:var(--muted);font-size:12px;padding:4px">
-        ⚠ Could not load ad.
-        <button onclick="loadAd(${slot})" class="btn-refresh" style="margin-left:8px">Retry</button>
-      </div>`;
-    document.getElementById(`ad${slot}-loaded`).style.display = "block";
+  } catch (err) {
+    if (skeleton) skeleton.style.display = "none";
+    if (loaded) loaded.style.display = "none";
+    if (error) {
+      error.textContent = "⚠ Could not load ad right now. Try again in a moment.";
+      error.style.display = "block";
+    }
   }
 }
 
@@ -616,7 +669,22 @@ function scheduleBackgroundNotif() {
 // ── Service Worker registration ───────────────────────────
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('sw.js')
-    .then(() => console.log('[MABlytic] SW registered'))
+    .then(reg => {
+      console.log('[MABlytic] SW registered');
+      reg.update();
+      reg.addEventListener('updatefound', () => {
+        const worker = reg.installing;
+        if (!worker) return;
+        worker.addEventListener('statechange', () => {
+          if (worker.state === 'installed' && navigator.serviceWorker.controller) {
+            if (confirm('A new MABlytic update is ready. Reload now to apply it?')) {
+              worker.postMessage({ type: 'SKIP_WAITING' });
+              window.location.reload();
+            }
+          }
+        });
+      });
+    })
     .catch(err => console.warn('[MABlytic] SW failed:', err));
 }
 

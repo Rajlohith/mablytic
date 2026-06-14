@@ -149,7 +149,9 @@ input:focus{border-color:var(--accent);}
 </div>
 
 <script>
-const API = "https://mablytic.onrender.com";
+const API = (location.hostname === "localhost" || location.hostname === "127.0.0.1")
+  ? "http://127.0.0.1:8001"
+  : "https://mablytic.onrender.com";
 let selectedRole = "user";
 
 // Already logged in? Redirect.
