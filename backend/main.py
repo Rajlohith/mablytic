@@ -10,6 +10,7 @@ import random
 
 import models, schemas
 from database import engine, get_db
+from ad_serving import ThompsonSamplingBandit, user_preference_categories
 
 models.Base.metadata.create_all(bind=engine)
 
@@ -216,44 +217,6 @@ def delete_ad(ad_id: int, db: Session = Depends(get_db)):
 # ═══════════════════════════════════════════════════════════════════════════════
 # AD SERVING
 # ═══════════════════════════════════════════════════════════════════════════════
-
-def user_preference_categories(user: models.User) -> list[str]:
-    return [p.strip().lower() for p in (user.preferences or "").split(",") if p.strip()]
-
-
-class ThompsonSamplingBandit:
-    """A simple Thompson Sampling bandit for ad selection."""
-
-    def __init__(self, db: Session):
-        self.db = db
-
-    def get_ad_stats(self, ad: models.Ad) -> tuple[int, int]:
-        views = self.db.query(func.count(models.Interaction.id)).filter(
-            models.Interaction.ad_id == ad.id,
-            models.Interaction.interaction_type == "view"
-        ).scalar() or 0
-        clicks = self.db.query(func.count(models.Interaction.id)).filter(
-            models.Interaction.ad_id == ad.id,
-            models.Interaction.interaction_type == "click"
-        ).scalar() or 0
-        return views, clicks
-
-    def score(self, ad: models.Ad) -> float:
-        views, clicks = self.get_ad_stats(ad)
-        alpha = 1 + clicks
-        beta = 1 + max(0, views - clicks)
-        return random.betavariate(alpha, beta)
-
-    def choose(self, ads: list[models.Ad]) -> models.Ad:
-        best_ad = None
-        best_score = -1.0
-        for ad in ads:
-            score = self.score(ad)
-            if score > best_score:
-                best_score = score
-                best_ad = ad
-        return best_ad
-
 
 @app.get("/serve-ad/{user_id}", response_model=schemas.AdResponse, tags=["Ad Serving"])
 def serve_ad(user_id: int, db: Session = Depends(get_db)):
