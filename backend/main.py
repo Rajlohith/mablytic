@@ -4,7 +4,7 @@ from fastapi import FastAPI, Depends, HTTPException
 from fastapi.responses import PlainTextResponse
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
-from sqlalchemy import desc
+from sqlalchemy import desc, func
 from typing import List
 import random
 
@@ -217,27 +217,64 @@ def delete_ad(ad_id: int, db: Session = Depends(get_db)):
 # AD SERVING
 # ═══════════════════════════════════════════════════════════════════════════════
 
+def user_preference_categories(user: models.User) -> list[str]:
+    return [p.strip().lower() for p in (user.preferences or "").split(",") if p.strip()]
+
+
+class ThompsonSamplingBandit:
+    """A simple Thompson Sampling bandit for ad selection."""
+
+    def __init__(self, db: Session):
+        self.db = db
+
+    def get_ad_stats(self, ad: models.Ad) -> tuple[int, int]:
+        views = self.db.query(func.count(models.Interaction.id)).filter(
+            models.Interaction.ad_id == ad.id,
+            models.Interaction.interaction_type == "view"
+        ).scalar() or 0
+        clicks = self.db.query(func.count(models.Interaction.id)).filter(
+            models.Interaction.ad_id == ad.id,
+            models.Interaction.interaction_type == "click"
+        ).scalar() or 0
+        return views, clicks
+
+    def score(self, ad: models.Ad) -> float:
+        views, clicks = self.get_ad_stats(ad)
+        alpha = 1 + clicks
+        beta = 1 + max(0, views - clicks)
+        return random.betavariate(alpha, beta)
+
+    def choose(self, ads: list[models.Ad]) -> models.Ad:
+        best_ad = None
+        best_score = -1.0
+        for ad in ads:
+            score = self.score(ad)
+            if score > best_score:
+                best_score = score
+                best_ad = ad
+        return best_ad
+
+
 @app.get("/serve-ad/{user_id}", response_model=schemas.AdResponse, tags=["Ad Serving"])
 def serve_ad(user_id: int, db: Session = Depends(get_db)):
-    """
-    Rule-based ad recommendation (Phase 2).
-    Matches ads to user preference categories.
-    Phase 3 will replace this with Thompson Sampling (Multi-Armed Bandit).
-    """
+    """Serve the ad most likely to convert for this user using a Multi-Armed Bandit model."""
     user = db.query(models.User).filter(models.User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found.")
 
-    prefs = [p.strip().lower() for p in user.preferences.split(",") if p.strip()]
-    matching = db.query(models.Ad).filter(models.Ad.category.in_(prefs)).all()
-
-    if matching:
-        return random.choice(matching)
-
-    all_ads = db.query(models.Ad).all()
-    if not all_ads:
+    ads = db.query(models.Ad).all()
+    if not ads:
         raise HTTPException(status_code=404, detail="No ads in database.")
-    return random.choice(all_ads)
+
+    prefs = user_preference_categories(user)
+    bandit = ThompsonSamplingBandit(db)
+
+    if prefs:
+        matching_ads = [ad for ad in ads if ad.category.lower() in prefs]
+        if matching_ads:
+            return bandit.choose(matching_ads)
+
+    return bandit.choose(ads)
 
 
 # ═══════════════════════════════════════════════════════════════════════════════

@@ -91,7 +91,7 @@ def seed():
     db = SessionLocal()
     try:
         if db.query(models.User).count() > 0:
-            print("⚠  Database already seeded. Delete ad_recommender.db and re-run to reseed.")
+            print("WARNING: Database already seeded. Delete ad_recommender.db and re-run to reseed.")
             return
 
         # Insert users
@@ -129,7 +129,7 @@ def seed():
         print("═" * 46)
     except Exception as e:
         db.rollback()
-        print(f"✗ Seed failed: {e}")
+        print(f"Seed failed: {e}")
     finally:
         db.close()
 
