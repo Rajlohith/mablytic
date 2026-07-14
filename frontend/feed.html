@@ -627,8 +627,53 @@ async function ensureNotificationPermission() {
   if (Notification.permission !== 'default') return false;
 
   try {
-    return await Notification.requestPermission() === 'granted';
+    const granted = await Notification.requestPermission() === 'granted';
+    if (granted) subscribeUserToPush();
+    return granted;
   } catch {
+    return false;
+  }
+}
+
+function urlBase64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const rawData = atob(base64);
+  return Uint8Array.from([...rawData].map(char => char.charCodeAt(0)));
+}
+
+async function subscribeUserToPush() {
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)) return false;
+  if (!('Notification' in window) || Notification.permission !== 'granted') return false;
+
+  try {
+    const keyResponse = await fetch(`${API}/push/vapid-public-key`);
+    if (!keyResponse.ok) return false;
+    const keyData = await keyResponse.json();
+    if (!keyData.public_key) return false;
+
+    const reg = await navigator.serviceWorker.ready;
+    let subscription = await reg.pushManager.getSubscription();
+    if (!subscription) {
+      subscription = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(keyData.public_key),
+      });
+    }
+
+    const subJson = subscription.toJSON();
+    await fetch(`${API}/push/subscriptions`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        user_id: userId,
+        endpoint: subJson.endpoint,
+        keys: subJson.keys,
+      }),
+    });
+    return true;
+  } catch (err) {
+    console.warn("[MABlytic] Push subscription failed:", err);
     return false;
   }
 }
@@ -689,6 +734,7 @@ async function requestNotifPermission() {
   document.getElementById('notif-prompt').style.display = 'none';
   const perm = await Notification.requestPermission();
   if (perm === 'granted') {
+    subscribeUserToPush();
     document.getElementById('notif-banner').classList.add('show');
     setTimeout(() => document.getElementById('notif-banner').classList.remove('show'), 4000);
     scheduleBackgroundNotif();
@@ -747,6 +793,7 @@ if ('serviceWorker' in navigator) {
 loadAd(1);
 loadAd(2);
 showNotifPrompt();
+if ('Notification' in window && Notification.permission === 'granted') subscribeUserToPush();
 
 // Auto-refresh ad slot 2 every 90 seconds (when online)
 setInterval(() => { if (isOnline && document.visibilityState === 'visible') loadAd(2); }, 90000);

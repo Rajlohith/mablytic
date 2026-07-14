@@ -1,4 +1,6 @@
 import hashlib
+import json
+import os
 import re
 from fastapi import FastAPI, Depends, HTTPException
 from fastapi.responses import PlainTextResponse
@@ -11,6 +13,12 @@ import random
 import models, schemas
 from database import engine, get_db
 from ad_serving import ThompsonSamplingBandit, user_preference_categories
+
+try:
+    from pywebpush import WebPushException, webpush
+except ImportError:
+    WebPushException = Exception
+    webpush = None
 
 models.Base.metadata.create_all(bind=engine)
 
@@ -64,6 +72,9 @@ def health():
 
 # ── Password helpers ──────────────────────────────────────────────────────────
 _SALT = "adwise_salt_v1"
+VAPID_PUBLIC_KEY = os.environ.get("VAPID_PUBLIC_KEY", "").strip()
+VAPID_PRIVATE_KEY = os.environ.get("VAPID_PRIVATE_KEY", "").strip()
+VAPID_CLAIM_SUB = os.environ.get("VAPID_CLAIM_SUB", "mailto:admin@mablytic.local").strip()
 
 def hash_password(password: str) -> str:
     return hashlib.sha256(f"{_SALT}{password}".encode()).hexdigest()
@@ -170,6 +181,7 @@ def delete_user(user_id: int, db: Session = Depends(get_db)):
     if not u:
         raise HTTPException(status_code=404, detail="User not found.")
     db.query(models.Interaction).filter(models.Interaction.user_id == user_id).delete()
+    db.query(models.PushSubscription).filter(models.PushSubscription.user_id == user_id).delete()
     db.delete(u)
     db.commit()
     return {"message": f"User {user_id} deleted."}
@@ -260,6 +272,50 @@ def list_interactions(limit: int = 100, db: Session = Depends(get_db)):
     return db.query(models.Interaction).order_by(desc(models.Interaction.id)).limit(limit).all()
 
 
+# ----------------------------------------------------------------------------
+# PUSH NOTIFICATIONS
+# ----------------------------------------------------------------------------
+
+@app.get("/push/vapid-public-key", tags=["Push Notifications"])
+def get_vapid_public_key():
+    return {
+        "public_key": VAPID_PUBLIC_KEY,
+        "configured": bool(VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY),
+    }
+
+
+@app.post("/push/subscriptions", response_model=schemas.PushSubscriptionResponse, tags=["Push Notifications"])
+def save_push_subscription(subscription: schemas.PushSubscriptionCreate, db: Session = Depends(get_db)):
+    user = db.query(models.User).filter(models.User.id == subscription.user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found.")
+
+    p256dh = subscription.keys.get("p256dh")
+    auth = subscription.keys.get("auth")
+    if not subscription.endpoint or not p256dh or not auth:
+        raise HTTPException(status_code=400, detail="Subscription endpoint, p256dh, and auth are required.")
+
+    db_sub = db.query(models.PushSubscription).filter(
+        models.PushSubscription.endpoint == subscription.endpoint
+    ).first()
+    if db_sub:
+        db_sub.user_id = subscription.user_id
+        db_sub.p256dh = p256dh
+        db_sub.auth = auth
+    else:
+        db_sub = models.PushSubscription(
+            user_id=subscription.user_id,
+            endpoint=subscription.endpoint,
+            p256dh=p256dh,
+            auth=auth,
+        )
+        db.add(db_sub)
+
+    db.commit()
+    db.refresh(db_sub)
+    return db_sub
+
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # DATABASE MANAGEMENT
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -267,6 +323,7 @@ def list_interactions(limit: int = 100, db: Session = Depends(get_db)):
 @app.post("/clear-database/", tags=["Database"])
 def clear_database(db: Session = Depends(get_db)):
     try:
+        db.query(models.PushSubscription).delete()
         db.query(models.Interaction).delete()
         db.query(models.Ad).delete()
         db.query(models.User).delete()
@@ -392,6 +449,73 @@ def get_history(limit: int = 50, db: Session = Depends(get_db)):
             "type":       log.interaction_type,
         })
     return out
+
+
+@app.get("/admin/push/subscriptions", tags=["Admin"])
+def get_push_subscription_counts(db: Session = Depends(get_db)):
+    rows = db.query(
+        models.PushSubscription.user_id,
+        func.count(models.PushSubscription.id).label("subscription_count"),
+    ).group_by(models.PushSubscription.user_id).all()
+    return [{"user_id": row.user_id, "subscription_count": row.subscription_count} for row in rows]
+
+
+@app.post("/admin/push/send", response_model=schemas.AdminPushResponse, tags=["Admin"])
+def send_admin_push(payload: schemas.AdminPushCreate, db: Session = Depends(get_db)):
+    if webpush is None:
+        raise HTTPException(status_code=500, detail="pywebpush is not installed on the backend.")
+    if not VAPID_PRIVATE_KEY or not VAPID_PUBLIC_KEY:
+        raise HTTPException(status_code=500, detail="Set VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY before sending push notifications.")
+
+    user = db.query(models.User).filter(models.User.id == payload.user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found.")
+
+    subscriptions = db.query(models.PushSubscription).filter(
+        models.PushSubscription.user_id == payload.user_id
+    ).all()
+    if not subscriptions:
+        raise HTTPException(status_code=404, detail="This user has no saved push subscription.")
+
+    notification = {
+        "title": payload.title,
+        "body": payload.body,
+        "url": payload.url or "/feed.html",
+        "tag": f"mablytic-admin-user-{payload.user_id}",
+    }
+
+    sent = 0
+    failed = 0
+    removed_stale = 0
+    stale_statuses = {404, 410}
+
+    for sub in subscriptions:
+        try:
+            webpush(
+                subscription_info={
+                    "endpoint": sub.endpoint,
+                    "keys": {"p256dh": sub.p256dh, "auth": sub.auth},
+                },
+                data=json.dumps(notification),
+                vapid_private_key=VAPID_PRIVATE_KEY,
+                vapid_claims={"sub": VAPID_CLAIM_SUB},
+            )
+            sent += 1
+        except WebPushException as exc:
+            status_code = getattr(getattr(exc, "response", None), "status_code", None)
+            if status_code in stale_statuses:
+                db.delete(sub)
+                removed_stale += 1
+            failed += 1
+
+    db.commit()
+    return {
+        "user_id": payload.user_id,
+        "attempted": len(subscriptions),
+        "sent": sent,
+        "failed": failed,
+        "removed_stale": removed_stale,
+    }
 
 
 @app.post("/admin/users", tags=["Admin"])

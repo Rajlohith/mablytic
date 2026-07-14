@@ -20,6 +20,7 @@ class User(Base):
     created_at    = Column(DateTime(timezone=True), server_default=func.now())
 
     interactions  = relationship("Interaction", back_populates="user")
+    push_subscriptions = relationship("PushSubscription", back_populates="user")
 
 
 class Ad(Base):
@@ -46,3 +47,17 @@ class Interaction(Base):
 
     user = relationship("User", back_populates="interactions")
     ad   = relationship("Ad",   back_populates="interactions")
+
+
+class PushSubscription(Base):
+    __tablename__ = "push_subscriptions"
+
+    id         = Column(Integer, primary_key=True, index=True)
+    user_id    = Column(Integer, ForeignKey("users.id"), index=True, nullable=False)
+    endpoint   = Column(String, unique=True, index=True, nullable=False)
+    p256dh     = Column(String, nullable=False)
+    auth       = Column(String, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+    user = relationship("User", back_populates="push_subscriptions")

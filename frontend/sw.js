@@ -7,7 +7,7 @@
      All other API → Pass-through (never cached)
    ═══════════════════════════════════════════════════════════════════ */
 
-const CACHE_VERSION = 'mablytic-v7';
+const CACHE_VERSION = 'mablytic-v8';
 const API_HOST      = 'mablytic.onrender.com';
 
 const PRECACHE_URLS = [

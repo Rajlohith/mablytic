@@ -6,4 +6,6 @@ python-multipart
 bcrypt
 passlib[bcrypt]
 cryptography
+pywebpush==2.0.0
+py-vapid==1.9.1
 psycopg2-binary==2.9.10

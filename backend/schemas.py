@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 from datetime import datetime
-from typing import Optional
+from typing import Optional, Dict
 
 
 # ── Auth ──────────────────────────────────────────────────────────────────────
@@ -95,3 +95,35 @@ class InteractionResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+# Push Notifications
+
+class PushSubscriptionCreate(BaseModel):
+    user_id: int
+    endpoint: str
+    keys: Dict[str, str]
+
+
+class PushSubscriptionResponse(BaseModel):
+    id: int
+    user_id: int
+    endpoint: str
+
+    class Config:
+        from_attributes = True
+
+
+class AdminPushCreate(BaseModel):
+    user_id: int
+    title: str
+    body: str
+    url: Optional[str] = "/feed.html"
+
+
+class AdminPushResponse(BaseModel):
+    user_id: int
+    attempted: int
+    sent: int
+    failed: int
+    removed_stale: int

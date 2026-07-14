@@ -182,6 +182,19 @@ Benefits include:
 * High availability
 * Production-grade reliability
 
+### Server-Side Push Notifications
+
+Admin-triggered Web Push notifications require VAPID keys on the backend.
+Set these environment variables on Render before using the admin notification sender:
+
+```env
+VAPID_PUBLIC_KEY=your_web_push_public_key
+VAPID_PRIVATE_KEY=your_web_push_private_key
+VAPID_CLAIM_SUB=mailto:admin@example.com
+```
+
+The frontend reads `VAPID_PUBLIC_KEY` from `/push/vapid-public-key`, stores each user's browser subscription through `/push/subscriptions`, and the admin dashboard sends targeted notifications through `/admin/push/send`.
+
 ## Repository Structure
 
 ```text
