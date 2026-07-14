@@ -53,10 +53,56 @@ async function logInteraction(type) {
     }
 }
 
+async function ensureNotificationPermission() {
+    if (!('Notification' in window)) return false;
+    if (Notification.permission === 'granted') return true;
+    if (Notification.permission !== 'default') return false;
+
+    try {
+        return await Notification.requestPermission() === 'granted';
+    } catch (error) {
+        console.error("Error requesting notification permission:", error);
+        return false;
+    }
+}
+
+async function showPwaNotification(title, options) {
+    if (!('serviceWorker' in navigator)) return false;
+
+    try {
+        const reg = await navigator.serviceWorker.ready;
+        await reg.showNotification(title, options);
+        return true;
+    } catch (error) {
+        console.error("Error showing PWA notification:", error);
+        return false;
+    }
+}
+
+async function notifyAdClick() {
+    const message = `You clicked on Ad #${currentAdId}.`;
+    const canNotify = await ensureNotificationPermission();
+
+    if (canNotify) {
+        const shown = await showPwaNotification('MABlytic - Ad clicked', {
+            body: message,
+            icon: '/icons/icon-192.png',
+            badge: '/icons/icon-96.png',
+            tag: `mablytic-ad-click-${currentAdId}`,
+            renotify: true,
+            vibrate: [120, 80, 120],
+            data: { url: '/feed.html' }
+        });
+        if (shown) return;
+    }
+
+    alert(message);
+}
+
 // 3. Event Listeners
-adActionBtn.addEventListener("click", () => {
-    logInteraction("click");
-    alert("Ad clicked! (This is where you'd link to the product)");
+adActionBtn.addEventListener("click", async () => {
+    await logInteraction("click");
+    await notifyAdClick();
 });
 
 refreshBtn.addEventListener("click", fetchAd);
