@@ -462,12 +462,12 @@ window.addEventListener('load', () => {
 });
 
 // ── Right-click & DevTools shortcuts disabled ─────────────
-document.addEventListener('contextmenu', e => e.preventDefault());
-document.addEventListener('keydown', e => {
-  if (e.key === 'F12') { e.preventDefault(); return; }
-  if (e.ctrlKey && e.shiftKey && ['I','J','C'].includes(e.key)) { e.preventDefault(); return; }
-  if (e.ctrlKey && e.key === 'U') e.preventDefault();
-});
+// document.addEventListener('contextmenu', e => e.preventDefault());
+// document.addEventListener('keydown', e => {
+//   if (e.key === 'F12') { e.preventDefault(); return; }
+//   if (e.ctrlKey && e.shiftKey && ['I','J','C'].includes(e.key)) { e.preventDefault(); return; }
+//   if (e.ctrlKey && e.key === 'U') e.preventDefault();
+// });
 
 // ── Init UI ───────────────────────────────────────────────
 document.getElementById("user-display").textContent = session?.first_name || session?.username || "User";
