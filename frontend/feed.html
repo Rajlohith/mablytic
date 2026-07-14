@@ -215,8 +215,14 @@ body{font-family:'Georgia',serif;background:var(--bg);color:var(--text);min-heig
 }
 .notif-text{font-family:'Inter',sans-serif;font-size:12px;color:var(--muted);flex:1}
 .notif-text strong{color:var(--text);display:block;margin-bottom:2px;font-size:13px}
+.notif-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .btn-allow{
   background:var(--accent);color:#fff;border:none;border-radius:6px;
+  padding:7px 14px;font-size:12px;font-weight:700;
+  cursor:pointer;font-family:'Inter',sans-serif;white-space:nowrap
+}
+.btn-dismiss{
+  background:transparent;color:var(--muted);border:1px solid var(--border);border-radius:6px;
   padding:7px 14px;font-size:12px;font-weight:700;
   cursor:pointer;font-family:'Inter',sans-serif;white-space:nowrap
 }
@@ -266,7 +272,10 @@ body{font-family:'Georgia',serif;background:var(--bg);color:var(--text);min-heig
       <strong>🔔 Stay updated on the best deals</strong>
       Get personalized ad alerts even when the app is in the background.
     </div>
-    <button class="btn-allow" onclick="requestNotifPermission()">Allow</button>
+    <div class="notif-actions">
+      <button class="btn-allow" onclick="requestNotifPermission()">Allow</button>
+      <button class="btn-dismiss" onclick="dismissNotifPrompt()">Not now</button>
+    </div>
   </div>
 
   <div class="section-label">Today's Top Stories</div>
@@ -626,13 +635,8 @@ async function ensureNotificationPermission() {
   if (Notification.permission === 'granted') return true;
   if (Notification.permission !== 'default') return false;
 
-  try {
-    const granted = await Notification.requestPermission() === 'granted';
-    if (granted) subscribeUserToPush();
-    return granted;
-  } catch {
-    return false;
-  }
+  showNotifPrompt();
+  return false;
 }
 
 function urlBase64ToUint8Array(base64String) {
@@ -725,19 +729,30 @@ let notifTimer = null;
 
 function showNotifPrompt() {
   if (!('Notification' in window)) return;
+  if (localStorage.getItem('mablytic_push_prompt_dismissed') === '1') return;
   if (Notification.permission === 'default') {
     document.getElementById('notif-prompt').style.display = 'flex';
   }
 }
 
-async function requestNotifPermission() {
+function dismissNotifPrompt() {
+  localStorage.setItem('mablytic_push_prompt_dismissed', '1');
   document.getElementById('notif-prompt').style.display = 'none';
+}
+
+async function requestNotifPermission() {
   const perm = await Notification.requestPermission();
   if (perm === 'granted') {
-    subscribeUserToPush();
+    localStorage.removeItem('mablytic_push_prompt_dismissed');
+    document.getElementById('notif-prompt').style.display = 'none';
+    await subscribeUserToPush();
     document.getElementById('notif-banner').classList.add('show');
     setTimeout(() => document.getElementById('notif-banner').classList.remove('show'), 4000);
     scheduleBackgroundNotif();
+  } else if (perm === 'denied') {
+    document.getElementById('notif-prompt').style.display = 'none';
+  } else {
+    document.getElementById('notif-prompt').style.display = 'flex';
   }
 }
 
