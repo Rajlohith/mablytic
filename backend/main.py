@@ -545,6 +545,15 @@ def send_admin_push(payload: schemas.AdminPushCreate, db: Session = Depends(get_
                 db.delete(sub)
                 removed_stale += 1
             failed += 1
+        except Exception as exc:
+            # Catches malformed VAPID key / signing errors and anything else pywebpush
+            # can raise that isn't a WebPushException, so it surfaces as a clean 500
+            # JSON response (with CORS headers) instead of an unhandled crash.
+            db.commit()
+            raise HTTPException(
+                status_code=500,
+                detail=f"Push send failed before delivery (check VAPID key format): {exc}",
+            )
 
     db.commit()
     return {
