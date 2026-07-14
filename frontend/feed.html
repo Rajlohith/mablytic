@@ -214,6 +214,7 @@ body{font-family:'Georgia',serif;background:var(--bg);color:var(--text);min-heig
   gap:12px;margin-bottom:16px;flex-wrap:wrap
 }
 .notif-text{font-family:'Inter',sans-serif;font-size:12px;color:var(--muted);flex:1}
+.notif-status{margin-top:6px;font-size:11px;color:#8ea1d8}
 .notif-text strong{color:var(--text);display:block;margin-bottom:2px;font-size:13px}
 .notif-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .btn-allow{
@@ -269,11 +270,12 @@ body{font-family:'Georgia',serif;background:var(--bg);color:var(--text);min-heig
   <!-- Notification permission prompt -->
   <div class="notif-prompt" id="notif-prompt" style="display:none">
     <div class="notif-text">
-      <strong>🔔 Stay updated on the best deals</strong>
-      Get personalized ad alerts even when the app is in the background.
+      <strong id="notif-prompt-title">🔔 Stay updated on the best deals</strong>
+      <div id="notif-prompt-copy">Allow browser notifications, then subscribe this device so push alerts can be delivered here.</div>
+      <div id="notif-prompt-status" class="notif-status"></div>
     </div>
     <div class="notif-actions">
-      <button class="btn-allow" onclick="requestNotifPermission()">Allow</button>
+      <button class="btn-allow" id="notif-prompt-allow" onclick="handlePushPromptAction()">Allow</button>
       <button class="btn-dismiss" onclick="dismissNotifPrompt()">Not now</button>
     </div>
   </div>
@@ -635,7 +637,15 @@ async function ensureNotificationPermission() {
   if (Notification.permission === 'granted') return true;
   if (Notification.permission !== 'default') return false;
 
-  showNotifPrompt();
+  try {
+    const perm = await Notification.requestPermission();
+    if (perm === 'granted') {
+      localStorage.removeItem('mablytic_push_prompt_dismissed');
+      refreshPushPrompt();
+      return true;
+    }
+  } catch {}
+
   return false;
 }
 
@@ -644,42 +654,6 @@ function urlBase64ToUint8Array(base64String) {
   const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
   const rawData = atob(base64);
   return Uint8Array.from([...rawData].map(char => char.charCodeAt(0)));
-}
-
-async function subscribeUserToPush() {
-  if (!('serviceWorker' in navigator) || !('PushManager' in window)) return false;
-  if (!('Notification' in window) || Notification.permission !== 'granted') return false;
-
-  try {
-    const keyResponse = await fetch(`${API}/push/vapid-public-key`);
-    if (!keyResponse.ok) return false;
-    const keyData = await keyResponse.json();
-    if (!keyData.public_key) return false;
-
-    const reg = await navigator.serviceWorker.ready;
-    let subscription = await reg.pushManager.getSubscription();
-    if (!subscription) {
-      subscription = await reg.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(keyData.public_key),
-      });
-    }
-
-    const subJson = subscription.toJSON();
-    await fetch(`${API}/push/subscriptions`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        user_id: userId,
-        endpoint: subJson.endpoint,
-        keys: subJson.keys,
-      }),
-    });
-    return true;
-  } catch (err) {
-    console.warn("[MABlytic] Push subscription failed:", err);
-    return false;
-  }
 }
 
 async function showPwaNotification(title, options) {
@@ -727,33 +701,179 @@ async function clickAd(slot) {
 // ── Push notifications ────────────────────────────────────
 let notifTimer = null;
 
-function showNotifPrompt() {
-  if (!('Notification' in window)) return;
-  if (localStorage.getItem('mablytic_push_prompt_dismissed') === '1') return;
-  if (Notification.permission === 'default') {
-    document.getElementById('notif-prompt').style.display = 'flex';
-  }
+function getNotifPromptElements() {
+  return {
+    prompt: document.getElementById('notif-prompt'),
+    title: document.getElementById('notif-prompt-title'),
+    copy: document.getElementById('notif-prompt-copy'),
+    status: document.getElementById('notif-prompt-status'),
+    allow: document.getElementById('notif-prompt-allow'),
+  };
+}
+
+function renderNotifPrompt({ title, copy, allowLabel, status = '', visible = true }) {
+  const els = getNotifPromptElements();
+  if (!els.prompt) return;
+  if (els.title && title) els.title.textContent = title;
+  if (els.copy && copy) els.copy.textContent = copy;
+  if (els.allow && allowLabel) els.allow.textContent = allowLabel;
+  if (els.status) els.status.textContent = status;
+  els.prompt.style.display = visible ? 'flex' : 'none';
+}
+
+function hideNotifPrompt() {
+  const els = getNotifPromptElements();
+  if (els.prompt) els.prompt.style.display = 'none';
+  if (els.status) els.status.textContent = '';
 }
 
 function dismissNotifPrompt() {
   localStorage.setItem('mablytic_push_prompt_dismissed', '1');
-  document.getElementById('notif-prompt').style.display = 'none';
+  hideNotifPrompt();
 }
 
-async function requestNotifPermission() {
-  const perm = await Notification.requestPermission();
-  if (perm === 'granted') {
+async function postPushSubscription(subscription) {
+  const subJson = subscription.toJSON();
+  const response = await fetch(`${API}/push/subscriptions`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      user_id: userId,
+      endpoint: subJson.endpoint,
+      keys: subJson.keys,
+    }),
+  });
+
+  if (!response.ok) {
+    let detail = `HTTP ${response.status}`;
+    try {
+      const payload = await response.json();
+      detail = payload?.detail || detail;
+    } catch {
+      try {
+        detail = await response.text() || detail;
+      } catch {}
+    }
+    throw new Error(detail);
+  }
+
+  return response.json();
+}
+
+async function subscribeUserToPush() {
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)) return false;
+  if (!('Notification' in window) || Notification.permission !== 'granted') return false;
+
+  try {
+    const keyResponse = await fetch(`${API}/push/vapid-public-key`);
+    if (!keyResponse.ok) {
+      throw new Error('Unable to load the push public key.');
+    }
+
+    const keyData = await keyResponse.json();
+    if (!keyData.public_key) {
+      throw new Error('Push notifications are not configured on the backend yet.');
+    }
+
+    const reg = await navigator.serviceWorker.ready;
+    let subscription = await reg.pushManager.getSubscription();
+    if (!subscription) {
+      subscription = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(keyData.public_key),
+      });
+    }
+
+    await postPushSubscription(subscription);
+    return true;
+  } catch (err) {
+    console.warn('[MABlytic] Push subscription failed:', err);
+    return false;
+  }
+}
+
+async function refreshPushPrompt() {
+  if (!('Notification' in window) || localStorage.getItem('mablytic_push_prompt_dismissed') === '1') {
+    return;
+  }
+
+  if (Notification.permission === 'denied') {
+    hideNotifPrompt();
+    return;
+  }
+
+  if (Notification.permission === 'default') {
+    renderNotifPrompt({
+      title: '🔔 Allow browser notifications',
+      copy: 'Grant notification permission first, then this device will be subscribed for push alerts.',
+      allowLabel: 'Allow notifications',
+      visible: true,
+    });
+    return;
+  }
+
+  const subscribed = await subscribeUserToPush();
+  if (subscribed) {
     localStorage.removeItem('mablytic_push_prompt_dismissed');
-    document.getElementById('notif-prompt').style.display = 'none';
-    await subscribeUserToPush();
+    hideNotifPrompt();
     document.getElementById('notif-banner').classList.add('show');
     setTimeout(() => document.getElementById('notif-banner').classList.remove('show'), 4000);
     scheduleBackgroundNotif();
-  } else if (perm === 'denied') {
-    document.getElementById('notif-prompt').style.display = 'none';
-  } else {
-    document.getElementById('notif-prompt').style.display = 'flex';
+    return;
   }
+
+  renderNotifPrompt({
+    title: '🔔 Finish push setup',
+    copy: 'Browser notifications are enabled, but this device still needs to be subscribed.',
+    allowLabel: 'Subscribe device',
+    status: 'Tap subscribe again to save this browser on the server.',
+    visible: true,
+  });
+}
+
+async function handlePushPromptAction() {
+  if (!('Notification' in window)) return;
+
+  if (Notification.permission === 'default') {
+    const perm = await Notification.requestPermission();
+    if (perm === 'granted') {
+      localStorage.removeItem('mablytic_push_prompt_dismissed');
+      await refreshPushPrompt();
+      return;
+    }
+
+    if (perm === 'denied') {
+      hideNotifPrompt();
+      return;
+    }
+
+    renderNotifPrompt({
+      title: '🔔 Allow browser notifications',
+      copy: 'Grant notification permission first, then this device will be subscribed for push alerts.',
+      allowLabel: 'Allow notifications',
+      status: 'Browser permission is still pending.',
+      visible: true,
+    });
+    return;
+  }
+
+  const ok = await subscribeUserToPush();
+  if (ok) {
+    localStorage.removeItem('mablytic_push_prompt_dismissed');
+    hideNotifPrompt();
+    document.getElementById('notif-banner').classList.add('show');
+    setTimeout(() => document.getElementById('notif-banner').classList.remove('show'), 4000);
+    scheduleBackgroundNotif();
+    return;
+  }
+
+  renderNotifPrompt({
+    title: '🔔 Finish push setup',
+    copy: 'Browser notifications are enabled, but this device still needs to be subscribed.',
+    allowLabel: 'Subscribe device',
+    status: 'We could not save this subscription to the server yet.',
+    visible: true,
+  });
 }
 
 function scheduleBackgroundNotif() {
@@ -807,8 +927,7 @@ if ('serviceWorker' in navigator) {
 // ── Initial load ──────────────────────────────────────────
 loadAd(1);
 loadAd(2);
-showNotifPrompt();
-if ('Notification' in window && Notification.permission === 'granted') subscribeUserToPush();
+refreshPushPrompt();
 
 // Auto-refresh ad slot 2 every 90 seconds (when online)
 setInterval(() => { if (isOnline && document.visibilityState === 'visible') loadAd(2); }, 90000);
