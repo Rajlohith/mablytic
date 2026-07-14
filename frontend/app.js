@@ -79,6 +79,59 @@ async function showPwaNotification(title, options) {
     }
 }
 
+// Convert the VAPID public key (base64url) to the Uint8Array format the Push API expects
+function urlBase64ToUint8Array(base64String) {
+    const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+    const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
+    const rawData = atob(base64);
+    return Uint8Array.from([...rawData].map(char => char.charCodeAt(0)));
+}
+
+// Subscribe this browser to push and register the subscription with the backend
+async function subscribeToPush() {
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+        console.warn("Push notifications aren't supported in this browser.");
+        return;
+    }
+
+    const canNotify = await ensureNotificationPermission();
+    if (!canNotify) return;
+
+    try {
+        const keyResp = await fetch(`${API_BASE_URL}/push/vapid-public-key`);
+        const keyData = await keyResp.json();
+        if (!keyData.configured) {
+            console.warn("Push isn't configured on the backend (missing VAPID keys).");
+            return;
+        }
+
+        const reg = await navigator.serviceWorker.ready;
+
+        let subscription = await reg.pushManager.getSubscription();
+        if (!subscription) {
+            subscription = await reg.pushManager.subscribe({
+                userVisibleOnly: true,
+                applicationServerKey: urlBase64ToUint8Array(keyData.public_key)
+            });
+        }
+
+        const subJson = subscription.toJSON();
+        await fetch(`${API_BASE_URL}/push/subscriptions`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                user_id: USER_ID,
+                endpoint: subJson.endpoint,
+                keys: subJson.keys
+            })
+        });
+
+        console.log("Push subscription registered with backend.");
+    } catch (error) {
+        console.error("Error subscribing to push:", error);
+    }
+}
+
 async function notifyAdClick() {
     const message = `You clicked on Ad #${currentAdId}.`;
     const canNotify = await ensureNotificationPermission();
@@ -111,7 +164,10 @@ refreshBtn.addEventListener("click", fetchAd);
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
         navigator.serviceWorker.register('sw.js')
-            .then(reg => console.log('Service Worker Registered!', reg))
+            .then(reg => {
+                console.log('Service Worker Registered!', reg);
+                subscribeToPush();
+            })
             .catch(err => console.error('Service Worker Failed!', err));
     });
 }
