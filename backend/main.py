@@ -2,6 +2,8 @@ import hashlib
 import json
 import os
 import re
+from base64 import urlsafe_b64encode
+from pathlib import Path
 from fastapi import FastAPI, Depends, HTTPException
 from fastapi.responses import PlainTextResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -9,6 +11,8 @@ from sqlalchemy.orm import Session
 from sqlalchemy import desc, func
 from typing import List
 import random
+
+from cryptography.hazmat.primitives import serialization
 
 import models, schemas
 from database import engine, get_db
@@ -19,6 +23,11 @@ try:
 except ImportError:
     WebPushException = Exception
     webpush = None
+
+try:
+    from py_vapid import Vapid02
+except ImportError:
+    Vapid02 = None
 
 models.Base.metadata.create_all(bind=engine)
 
@@ -72,9 +81,38 @@ def health():
 
 # ── Password helpers ──────────────────────────────────────────────────────────
 _SALT = "adwise_salt_v1"
-VAPID_PUBLIC_KEY = os.environ.get("VAPID_PUBLIC_KEY", "").strip()
-VAPID_PRIVATE_KEY = os.environ.get("VAPID_PRIVATE_KEY", "").strip()
+_VAPID_PRIVATE_KEY_FILE = Path(__file__).with_name(".vapid_private.pem")
 VAPID_CLAIM_SUB = os.environ.get("VAPID_CLAIM_SUB", "mailto:admin@mablytic.local").strip()
+
+
+def _encode_vapid_public_key(vapid) -> str:
+    raw_public_key = vapid.public_key.public_bytes(
+        serialization.Encoding.X962,
+        serialization.PublicFormat.UncompressedPoint,
+    )
+    return urlsafe_b64encode(raw_public_key).rstrip(b"=").decode("ascii")
+
+
+def load_vapid_credentials() -> tuple[str, str]:
+    env_public_key = os.environ.get("VAPID_PUBLIC_KEY", "").strip()
+    env_private_key = os.environ.get("VAPID_PRIVATE_KEY", "").strip()
+    if env_public_key and env_private_key:
+        return env_public_key, env_private_key
+
+    if Vapid02 is None:
+        return env_public_key, env_private_key
+
+    if _VAPID_PRIVATE_KEY_FILE.exists():
+        vapid = Vapid02.from_file(str(_VAPID_PRIVATE_KEY_FILE))
+    else:
+        vapid = Vapid02()
+        vapid.generate_keys()
+        vapid.save_key(str(_VAPID_PRIVATE_KEY_FILE))
+
+    return _encode_vapid_public_key(vapid), vapid.private_pem().decode("utf-8")
+
+
+VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY = load_vapid_credentials()
 
 def hash_password(password: str) -> str:
     return hashlib.sha256(f"{_SALT}{password}".encode()).hexdigest()
