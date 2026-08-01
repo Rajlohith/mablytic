@@ -12,7 +12,7 @@ from models import Base
 
 Base.metadata.create_all(bind=engine)
 
-_SALT = "adwise_salt_v1"
+_SALT = "mablytic_salt_v1"
 
 
 def hash_password(password: str) -> str:
@@ -22,7 +22,7 @@ def hash_password(password: str) -> str:
 USERS = [
     # Admin
     dict(username="admin",  password="Admin123", first_name="System", last_name="Admin",
-         email="admin@adwise.com",    gender="prefer-not-to-say", age=30,
+         email="admin@mablytic.com",    gender="prefer-not-to-say", age=30,
          preferences="tech,gaming,fitness,health,food,travel,sports,books,education",
          is_admin=True),
     # Regular users — credentials to share with testers

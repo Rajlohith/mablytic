@@ -422,16 +422,16 @@ const SESSION_KEY = "mablytic_session";
 const AD_CACHE_KEY = "mablytic_ad_cache";
 
 // ── Auth guard ────────────────────────────────────────────
-// Support both old key (adwise_session) and new key for backwards compat
+// Support both old key (mablytic_session) and new key for backwards compat
 const session = JSON.parse(
   localStorage.getItem(SESSION_KEY) ||
-  localStorage.getItem("adwise_session") ||
+  localStorage.getItem("mablytic_session") ||
   "null"
 );
 if (!session) { window.location.href = "index.html"; }
 // Migrate old key
-if (localStorage.getItem("adwise_session") && !localStorage.getItem(SESSION_KEY)) {
-  localStorage.setItem(SESSION_KEY, localStorage.getItem("adwise_session"));
+if (localStorage.getItem("mablytic_session") && !localStorage.getItem(SESSION_KEY)) {
+  localStorage.setItem(SESSION_KEY, localStorage.getItem("mablytic_session"));
 }
 const userId = Number.isFinite(Number(session?.id)) && Number(session?.id) > 0
   ? Number(session?.id)
@@ -478,7 +478,7 @@ if (prefs.length) {
 // ── Logout ────────────────────────────────────────────────
 function logout() {
   localStorage.removeItem(SESSION_KEY);
-  localStorage.removeItem("adwise_session");
+  localStorage.removeItem("mablytic_session");
   window.location.href = "index.html";
 }
 

@@ -63,7 +63,7 @@ def health():
 
 
 # ── Password helpers ──────────────────────────────────────────────────────────
-_SALT = "adwise_salt_v1"
+_SALT = "mablytic_salt_v1"
 
 def hash_password(password: str) -> str:
     return hashlib.sha256(f"{_SALT}{password}".encode()).hexdigest()
