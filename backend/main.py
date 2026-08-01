@@ -64,12 +64,18 @@ def health():
 
 # ── Password helpers ──────────────────────────────────────────────────────────
 _SALT = "mablytic_salt_v1"
+_OLD_SALT = "adwise_salt_v1"  # kept only so pre-existing users can still log in
 
-def hash_password(password: str) -> str:
-    return hashlib.sha256(f"{_SALT}{password}".encode()).hexdigest()
+def hash_password(password: str, salt: str = _SALT) -> str:
+    return hashlib.sha256(f"{salt}{password}".encode()).hexdigest()
 
-def verify_password(plain: str, stored: str) -> bool:
-    return hash_password(plain) == stored
+def verify_password(plain: str, stored: str) -> str | None:
+    """Returns the salt that matched the stored hash, or None if invalid."""
+    if hash_password(plain, _SALT) == stored:
+        return _SALT
+    if hash_password(plain, _OLD_SALT) == stored:
+        return _OLD_SALT
+    return None
 
 
 # ── Validation ────────────────────────────────────────────────────────────────
@@ -114,8 +120,18 @@ def register(user: schemas.UserRegister, db: Session = Depends(get_db)):
 @app.post("/auth/login", tags=["Auth"])
 def login(creds: schemas.UserLogin, db: Session = Depends(get_db)):
     db_user = db.query(models.User).filter(models.User.username == creds.username).first()
-    if not db_user or not verify_password(creds.password, db_user.password_hash):
+    if not db_user:
         raise HTTPException(status_code=401, detail="Invalid username or password.")
+
+    matched_salt = verify_password(creds.password, db_user.password_hash)
+    if not matched_salt:
+        raise HTTPException(status_code=401, detail="Invalid username or password.")
+
+    # Lazily migrate old-salt users to the new salt on successful login
+    if matched_salt == _OLD_SALT:
+        db_user.password_hash = hash_password(creds.password, _SALT)
+        db.commit()
+
     return {
         "id":          db_user.id,
         "username":    db_user.username,
