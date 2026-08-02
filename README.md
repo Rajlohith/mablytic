@@ -101,25 +101,34 @@ The project serves as both a production-ready web application and a research pla
 flowchart TD
 
     U[Users]
-    F[Frontend PWA<br/>HTML / CSS / JavaScript]
+
+    F[Frontend PWA<br/>HTML • CSS • JavaScript]
+
     B[FastAPI Backend]
 
-    subgraph Services
-        direction LR
+    subgraph Backend Modules
+        direction TB
+
+        AUTH[Authentication<br/>User Management]
 
         RE[Recommendation Engine<br/>• Preference Matching<br/>• Thompson Sampling]
 
-        AE[Analytics Engine<br/>• CTR Tracking<br/>• Performance Metrics]
+        AE[Analytics Engine<br/>• View & Click Tracking<br/>• CTR Calculation]
+
+        API[REST API Endpoints]
     end
 
-    DB[(SQLite / PostgreSQL DB)]
+    DB[(SQLite<br/>Development<br/><br/>PostgreSQL - Neon<br/>Production)]
 
     U --> F
     F --> B
+
+    B --> AUTH
     B --> RE
     B --> AE
-    RE --> DB
-    AE --> DB
+    B --> API
+
+    B --> DB
 ```
 
 ## Production Deployment Architecture
