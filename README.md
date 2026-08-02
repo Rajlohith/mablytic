@@ -97,65 +97,47 @@ The project serves as both a production-ready web application and a research pla
 
 ## System Architecture
 
-```text
-                         +------------------+
-                         |      Users       |
-                         +--------+---------+
-                                  |
-                                  v
-                     +--------------------------+
-                     |      Frontend PWA        |
-                     | HTML / CSS / JavaScript  |
-                     +------------+-------------+
-                                  |
-                                  v
-                     +--------------------------+
-                     |      FastAPI Backend     |
-                     +------------+-------------+
-                                  |
-          +-----------------------+-----------------------+
-          |                                               |
-          v                                               v
+```mermaid
+flowchart TD
 
-+----------------------+                   +----------------------+
-| Recommendation Engine|                   | Analytics Engine     |
-| Preference Matching  |                   | CTR Tracking         |
-| Thompson Sampling    |                   | Performance Metrics  |
-+----------------------+                   +----------------------+
-          |                                               |
-          +-----------------------+-----------------------+
-                                  |
-                                  v
+    U[Users]
+    F[Frontend PWA<br/>HTML / CSS / JavaScript]
+    B[FastAPI Backend]
 
-                     +--------------------------+
-                     | SQLite / PostgreSQL DB   |
-                     +--------------------------+
+    subgraph Services
+        direction LR
+
+        RE[Recommendation Engine<br/>• Preference Matching<br/>• Thompson Sampling]
+
+        AE[Analytics Engine<br/>• CTR Tracking<br/>• Performance Metrics]
+    end
+
+    DB[(SQLite / PostgreSQL DB)]
+
+    U --> F
+    F --> B
+    B --> RE
+    B --> AE
+    RE --> DB
+    AE --> DB
 ```
 
 ## Production Deployment Architecture
 
-```text
-                    +----------------------+
-                    |       Users          |
-                    +----------+-----------+
-                               |
-                               v
-                    +----------------------+
-                    |  Firebase Hosting    |
-                    |    Frontend PWA      |
-                    +----------+-----------+
-                               |
-                               v
-                    +----------------------+
-                    |      Render          |
-                    |   FastAPI Backend    |
-                    +----------+-----------+
-                               |
-                               v
-                    +----------------------+
-                    | Neon PostgreSQL      |
-                    | Persistent Database  |
-                    +----------------------+
+```mermaid
+flowchart TD
+
+    U[Users]
+
+    FH[Firebase Hosting<br/>Frontend PWA]
+
+    R[Render<br/>FastAPI Backend]
+
+    DB[(Neon PostgreSQL<br/>Persistent Database)]
+
+    U --> FH
+    FH --> R
+    R --> DB
 ```
 
 ### Infrastructure
@@ -260,18 +242,32 @@ Maximize user engagement while continuously learning advertisement effectiveness
 
 ### Reward Model
 
-```text
-Click               → Success
-View Without Click  → Failure
+```mermaid
+flowchart LR
+    A[User Interaction]
+
+    B[Click]
+    C[View Without Click]
+
+    D[Success]
+    E[Failure]
+
+    A --> B
+    A --> C
+    B --> D
+    C --> E
 ```
 
 ### Beta Distribution
 
-```text
-Beta(α, β)
+```mermaid
+flowchart TD
 
-α = Clicks + 1
-β = Failures + 1
+    Clicks[Clicks] --> A["α = Clicks + 1"]
+    Failures[Failures] --> B["β = Failures + 1"]
+
+    A --> C["Beta(α, β)"]
+    B --> C
 ```
 
 For every advertisement, a probability distribution is maintained.
@@ -320,7 +316,7 @@ cd backend
 
 pip install -r requirements.txt
 
-uvicorn main:app --reload --port 8000
+uvicorn main:app --reload --port 8001
 ```
 
 Populate sample data:
@@ -332,13 +328,13 @@ python seed_data.py
 Backend URL:
 
 ```text
-http://127.0.0.1:8000
+http://127.0.0.1:8001
 ```
 
 API Documentation:
 
 ```text
-http://127.0.0.1:8000/docs
+http://127.0.0.1:8001/docs
 ```
 
 ### Frontend
@@ -397,14 +393,23 @@ Neon PostgreSQL
 
 Production Architecture:
 
-```text
-Firebase Hosting
-        │
-        ▼
-Render FastAPI Backend
-        │
-        ▼
-Neon PostgreSQL
+```mermaid
+flowchart TD
+
+    subgraph Frontend
+        FH[Firebase Hosting]
+    end
+
+    subgraph Backend
+        API[Render<br/>FastAPI Backend]
+    end
+
+    subgraph Database
+        DB[(Neon PostgreSQL)]
+    end
+
+    FH --> API
+    API --> DB
 ```
 
 ## Project Evolution
