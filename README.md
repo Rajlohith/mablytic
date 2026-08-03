@@ -1,10 +1,40 @@
 # MABlytic
 
+![Python](https://img.shields.io/badge/Python-3.11-blue?logo=python)
+![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white)
+![Multi-Armed Bandit](https://img.shields.io/badge/Reinforcement_Learning-Multi--Armed_Bandit-blueviolet)
+![Thompson Sampling](https://img.shields.io/badge/Algorithm-Thompson_Sampling-purple)
+![Recommendation System](https://img.shields.io/badge/AI-Recommendation_System-success)
+![PWA](https://img.shields.io/badge/PWA-Installable-5A0FC8?logo=pwa)
+![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)
+
 > A Full-Stack Advertisement Recommendation Platform featuring Personalized Ad Delivery, Real-Time Analytics, Progressive Web App Support, A/B Testing, and Multi-Armed Bandit Learning.
 
 MABlytic is a modern advertisement recommendation system that demonstrates the complete lifecycle of personalized advertising. The platform combines user profiling, advertisement targeting, interaction tracking, analytics, and reinforcement learning concepts into a deployable full-stack web application.
 
 The system currently utilizes user preference matching and Thompson Sampling based Multi-Armed Bandit learning to improve advertisement selection through user engagement data.
+
+## Table of Contents
+
+- [Live Demo](#live-demo)
+- [Overview](#overview)
+- [Key Features](#key-features)
+- [Technology Stack](#technology-stack)
+- [System Architecture](#system-architecture)
+- [Production Deployment Architecture](#production-deployment-architecture)
+- [Repository Structure](#repository-structure)
+- [Recommendation Pipeline](#recommendation-pipeline)
+- [Thompson Sampling Implementation](#thompson-sampling-implementation)
+- [Database Design](#database-design)
+- [Installation](#installation)
+- [Demo Accounts](#demo-accounts)
+- [Progressive Web App Features](#progressive-web-app-features)
+- [Deployment](#deployment)
+- [Project Evolution](#project-evolution)
+- [Notable Milestones](#notable-milestones)
+- [Research Applications](#research-applications)
+- [License](#license)
+- [Links](#links)
 
 ## Live Demo
 
