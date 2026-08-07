@@ -142,7 +142,7 @@ input:focus{border-color:var(--accent);}
   
 
   <div class="footer-link">
-    Don't have an account? <a href="register.html">Register here</a>
+    Don't have an account? <a href="/register">Register here</a>
   </div>
 </div>
 
@@ -155,7 +155,7 @@ let selectedRole = "user";
 // Already logged in? Redirect.
 const session = JSON.parse(localStorage.getItem("mablytic_session") || "null");
 if (session) {
-  window.location.href = session.is_admin ? "admin.html" : "feed.html";
+  window.location.href = session.is_admin ? "/admin" : "/feed";
 }
 
 function setRole(role) {
@@ -203,7 +203,7 @@ async function doLogin() {
     }
 
     localStorage.setItem("mablytic_session", JSON.stringify(user));
-    window.location.href = user.is_admin ? "admin.html" : "feed.html";
+    window.location.href = user.is_admin ? "/admin" : "/feed";
   } catch (e) {
     showErr(e.message);
     btn.innerHTML = "Login";

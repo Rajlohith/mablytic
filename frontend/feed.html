@@ -428,7 +428,7 @@ const session = JSON.parse(
   localStorage.getItem("mablytic_session") ||
   "null"
 );
-if (!session) { window.location.href = "index.html"; }
+if (!session) { window.location.href = "/"; }
 // Migrate old key
 if (localStorage.getItem("mablytic_session") && !localStorage.getItem(SESSION_KEY)) {
   localStorage.setItem(SESSION_KEY, localStorage.getItem("mablytic_session"));
@@ -479,7 +479,7 @@ if (prefs.length) {
 function logout() {
   localStorage.removeItem(SESSION_KEY);
   localStorage.removeItem("mablytic_session");
-  window.location.href = "index.html";
+  window.location.href = "/";
 }
 
 // ── Online / Offline detection ────────────────────────────

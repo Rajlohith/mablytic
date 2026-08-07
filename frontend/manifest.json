@@ -2,7 +2,7 @@
   "name": "MABlytic",
   "short_name": "MABlytic",
   "description": "Personalized ad recommendation engine with A/B testing, analytics, and Multi-Armed Bandit ML.",
-  "start_url": "/index.html",
+  "start_url": "/",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait-primary",
@@ -42,14 +42,14 @@
       "name": "My Feed",
       "short_name": "Feed",
       "description": "Open your personalized news and ad feed",
-      "url": "/feed.html",
+      "url": "/feed",
       "icons": [{ "src": "icons/icon-96.png", "sizes": "96x96" }]
     },
     {
       "name": "Admin Dashboard",
       "short_name": "Admin",
       "description": "Open the admin analytics dashboard",
-      "url": "/admin.html",
+      "url": "/admin",
       "icons": [{ "src": "icons/icon-96.png", "sizes": "96x96" }]
     }
   ],

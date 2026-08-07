@@ -7,14 +7,14 @@
      All other API → Pass-through (never cached)
    ═══════════════════════════════════════════════════════════════════ */
 
-const CACHE_VERSION = 'mablytic-v7';
+const CACHE_VERSION = 'mablytic-v8';  // bumped: clean-URL migration invalidates old cache
 const API_HOST      = 'mablytic.onrender.com';
 
 const PRECACHE_URLS = [
-  '/index.html',
-  '/register.html',
-  '/feed.html',
-  '/admin.html',
+  '/',
+  '/register',
+  '/feed',
+  '/admin',
   '/manifest.json',
   '/icons/icon-192.png',
   '/icons/icon-512.png',
@@ -129,7 +129,7 @@ self.addEventListener('fetch', event => {
       .catch(async () => {
         const cached = await caches.match(request);
         if (cached) return cached;
-        if (request.mode === 'navigate') return caches.match('/index.html');
+        if (request.mode === 'navigate') return caches.match('/');
         return new Response('Offline', { status: 503 });
       })
   );
@@ -140,7 +140,7 @@ self.addEventListener('push', event => {
   let data = {
     title: 'MABlytic — New Ad for You',
     body:  'A personalized deal is waiting! Open the app to see it. 🎯',
-    url:   '/feed.html',
+    url:   '/feed',
     tag:   'mablytic-ad',
   };
 
@@ -171,7 +171,7 @@ self.addEventListener('push', event => {
 self.addEventListener('notificationclick', event => {
   event.notification.close();
   if (event.action === 'dismiss') return;
-  const target = event.notification.data?.url || '/feed.html';
+  const target = event.notification.data?.url || '/feed';
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then(list => {
       for (const c of list) {
