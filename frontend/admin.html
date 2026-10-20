@@ -1,1093 +1,666 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en" data-theme="dark">
-<head>
-<meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-<meta name="robots" content="noindex,nofollow,noarchive,nosnippet,noimageindex,nocache,max-snippet:0,max-image-preview:none,max-video-preview:-1">
-<title>MABlytic Admin</title>
-<link rel="manifest" href="manifest.json"/>
-<meta name="theme-color" content="#0d1017"/>
-<style>
-#splash{position:fixed;inset:0;z-index:99999;background:#0d1017;
-  display:flex;flex-direction:column;align-items:center;justify-content:center;
-  transition:opacity .5s ease;}
-#splash.hide{opacity:0;pointer-events:none}
-.sp-icon{width:72px;height:72px;border-radius:20px;background:linear-gradient(135deg,#5b68ff,#a855f7);
-  display:flex;align-items:center;justify-content:center;
-  font-weight:900;font-size:28px;color:#fff;margin-bottom:18px;
-  box-shadow:0 0 40px rgba(91,104,255,.4);animation:splashPulse 1.2s ease infinite alternate;}
-.sp-name{font-size:22px;font-weight:800;color:#e4e6f0;letter-spacing:-.5px}
-.sp-sub{font-size:12px;color:#6070a0;margin-top:6px}
-.sp-bar{width:120px;height:3px;background:#272d45;border-radius:3px;margin-top:24px;overflow:hidden}
-.sp-fill{height:100%;width:0;background:linear-gradient(90deg,#5b68ff,#a855f7);
-  border-radius:3px;animation:splashLoad 1.4s ease forwards;}
-@keyframes splashPulse{from{box-shadow:0 0 20px rgba(91,104,255,.3)}to{box-shadow:0 0 50px rgba(91,104,255,.6)}}
-@keyframes splashLoad{0%{width:0}60%{width:80%}100%{width:100%}}
-</style>
-<style>
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-:root{
-  --bg:#0d1017;--sidebar:#131824;--card:#1b1f2e;--card-hover:#222740;
-  --border:#272d45;--text:#e4e6f0;--muted:#6070a0;
-  --accent:#5b68ff;--accent-soft:rgba(91,104,255,.15);
-  --green:#22c55e;--green-soft:rgba(34,197,94,.15);
-  --cyan:#06b6d4;--cyan-soft:rgba(6,182,212,.15);
-  --orange:#f97316;--orange-soft:rgba(249,115,22,.15);
-  --purple:#a855f7;--purple-soft:rgba(168,85,247,.15);
-  --red:#ef4444;--red-soft:rgba(239,68,68,.12);
-}
-[data-theme="light"]{
-  --bg:#f0f2f9;--sidebar:#fff;--card:#fff;--card-hover:#f5f7ff;
-  --border:#dde2f0;--text:#1a1f38;--muted:#7080b0;
-}
-*{font-family:'Inter',system-ui,sans-serif}
-html,body{overflow-x:hidden;width:100%;max-width:100vw}
-html,body{width:100%;height:100%}
-body{background:var(--bg);color:var(--text);overflow:hidden;font-size:14px}
-
-/* ── Sidebar ─────────────────────────────────────────────── */
-.sidebar{position:fixed;inset:0 auto 0 0;z-index:10000;width:230px;max-width:82vw;background:var(--sidebar);
-  border-right:1px solid var(--border);display:flex;flex-direction:column;padding:18px 10px 16px;
-  box-shadow:18px 0 42px rgba(0,0,0,.28);transform:translateX(-100%);transition:transform .22s ease}
-body.sidebar-open .sidebar{transform:translateX(0)}
-.sidebar-backdrop{position:fixed;inset:0;z-index:9990;background:rgba(3,7,18,.52);
-  opacity:0;pointer-events:none;transition:opacity .2s ease}
-body.sidebar-open .sidebar-backdrop{opacity:1;pointer-events:auto}
-.logo{display:flex;align-items:center;gap:10px;padding:4px 10px 18px}
-.logo-icon{width:30px;height:30px;border-radius:8px;background:var(--accent);
-  display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;color:#fff}
-.logo-name{font-weight:800;font-size:15px}
-.sidebar-close,.sidebar-toggle{display:inline-flex;align-items:center;justify-content:center;border:1px solid var(--border);
-  background:var(--card);color:var(--text);border-radius:8px;cursor:pointer;transition:all .15s}
-.sidebar-close:hover,.sidebar-toggle:hover{background:var(--accent-soft);border-color:var(--accent);color:var(--text)}
-.sidebar-close{width:30px;height:30px;margin-left:auto;font-size:18px;line-height:1}
-.sidebar-toggle{width:34px;height:34px;font-size:18px;flex-shrink:0}
-.nav{flex:1}
-.nav-item{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:8px;
-  cursor:pointer;color:var(--muted);font-size:13px;font-weight:500;transition:all .15s;
-  margin-bottom:2px;user-select:none;border:none;background:none;width:100%;text-align:left}
-.nav-item:hover{background:var(--accent-soft);color:var(--text)}
-.nav-item.active{background:var(--accent-soft);color:var(--text)}
-.nav-item.active .nav-icon{background:var(--accent)}
-.nav-icon{width:26px;height:26px;border-radius:6px;background:var(--border);
-  display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;transition:background .15s}
-.sep{border-top:1px solid var(--border);margin:10px 0}
-.settings-lbl{font-size:10px;font-weight:700;color:var(--muted);letter-spacing:.1em;
-  text-transform:uppercase;padding:0 12px;margin-bottom:6px}
-.user-row{display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:8px;margin-top:2px}
-.user-av{width:28px;height:28px;border-radius:50%;background:var(--accent);
-  display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#fff}
-.user-info small{display:block;font-size:10px;color:var(--muted)}
-
-/* ── Main ─────────────────────────────────────────────────── */
-.main{position:fixed;inset:0;z-index:1;width:100%;min-width:0;display:flex;flex-direction:column;overflow:hidden}
-.topbar{background:var(--sidebar);border-bottom:1px solid var(--border);padding:0 24px;height:52px;
-  display:flex;align-items:center;gap:10px;flex-shrink:0}
-.topbar-title{font-size:14px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;max-width:180px}
-.badge{font-size:10px;font-weight:700;padding:2px 8px;border-radius:4px;text-transform:uppercase;letter-spacing:.06em}
-.badge-admin{background:var(--green-soft);color:var(--green)}
-.spacer{flex:1}
-.backend-badge{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted);
-  background:var(--card);border:1px solid var(--border);border-radius:20px;padding:4px 12px}
-.dot{width:7px;height:7px;border-radius:50%;background:var(--muted);transition:background .3s}
-.dot.online{background:var(--green)} .dot.offline{background:var(--red)}
-.content{flex:1;overflow-y:auto;padding:24px 28px}
-
-/* ── Pages ────────────────────────────────────────────────── */
-.page{display:none} .page.active{display:block}
-
-/* ── Cards ────────────────────────────────────────────────── */
-.card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px 22px}
-.card-title{font-size:13px;font-weight:700;margin-bottom:14px}
-
-/* ── Stats ────────────────────────────────────────────────── */
-.stats-row{display:grid;grid-template-columns:repeat(auto-fill,minmax(148px,1fr));gap:12px;margin-bottom:22px}
-.stat-card{background:var(--card);border:1px solid var(--border);border-radius:12px;
-  padding:16px 18px;display:flex;align-items:center;gap:14px}
-.stat-icon{width:42px;height:42px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:19px;flex-shrink:0}
-.stat-value{font-size:26px;font-weight:800;color:var(--text);line-height:1;margin-bottom:3px}
-.stat-label{font-size:11px;color:var(--muted);font-weight:500}
-
-/* ── Welcome ──────────────────────────────────────────────── */
-.welcome-card{background:var(--card);border:1px solid var(--border);border-radius:16px;
-  padding:40px 30px;text-align:center;margin-bottom:20px}
-.aw-logo{width:72px;height:72px;border-radius:16px;
-  background:linear-gradient(135deg,#1e2a50,#2a3a70);border:1px solid var(--border);
-  display:flex;align-items:center;justify-content:center;
-  font-weight:800;font-size:22px;color:#c8d0f0;margin:0 auto 18px;letter-spacing:-0.5px}
-.welcome-title{font-size:22px;font-weight:800;margin-bottom:10px}
-.welcome-sub{font-size:13px;color:var(--muted);max-width:420px;margin:0 auto;line-height:1.7}
-
-/* ── Quick actions ────────────────────────────────────────── */
-.actions-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:6px}
-.action-card{background:var(--card);border:1px solid var(--border);border-radius:12px;
-  padding:18px;cursor:pointer;transition:all .18s}
-.action-card:hover{border-color:var(--accent);transform:translateY(-2px);box-shadow:0 6px 20px rgba(0,0,0,.2)}
-.action-icon{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;
-  justify-content:center;font-size:19px;margin-bottom:12px}
-.action-title{font-size:13px;font-weight:700;margin-bottom:4px}
-.action-desc{font-size:11.5px;color:var(--muted)}
-
-/* ── Section ──────────────────────────────────────────────── */
-.section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
-.section-title{font-size:14px;font-weight:700}
-
-/* ── Grid ─────────────────────────────────────────────────── */
-.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
-@media(max-width:768px){
-  .grid-2{grid-template-columns:1fr}
-  .actions-grid{grid-template-columns:1fr 1fr}
-  .stats-row{grid-template-columns:1fr 1fr}
-  .topbar{padding:0 12px;gap:6px}
-  .topbar-title{font-size:12px;max-width:120px}
-  .form-row{grid-template-columns:1fr}
-  .tbl-wrap{font-size:11px}
-  .tbl-wrap th,.tbl-wrap td{padding:8px 10px}
-  .content{padding:16px}
-  .card{padding:16px}
-}
-@media(max-width:400px){
-  .stats-row{grid-template-columns:1fr}
-  .backend-badge span{display:none}
-}
-
-/* ── Table ────────────────────────────────────────────────── */
-.tbl-wrap{overflow-x:auto;border-radius:12px}
-table{width:100%;border-collapse:collapse;font-size:13px}
-thead th{text-align:left;padding:10px 14px;color:var(--muted);font-size:10.5px;font-weight:700;
-  text-transform:uppercase;letter-spacing:.08em;border-bottom:1px solid var(--border);white-space:nowrap}
-tbody td{padding:11px 14px;border-bottom:1px solid var(--border);color:var(--text)}
-tbody tr:last-child td{border-bottom:none}
-tbody tr:hover td{background:var(--card-hover)}
-
-/* ── Form ─────────────────────────────────────────────────── */
-.form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-.form-group{margin-bottom:14px}
-label{display:block;font-size:11px;font-weight:700;color:var(--muted);margin-bottom:5px;
-  text-transform:uppercase;letter-spacing:.07em}
-input,select,textarea{width:100%;background:var(--bg);border:1px solid var(--border);
-  border-radius:8px;color:var(--text);font-size:13px;padding:9px 12px;outline:none;
-  transition:border-color .15s;font-family:inherit}
-input:focus,select:focus,textarea:focus{border-color:var(--accent)}
-textarea{resize:vertical;min-height:70px}
-select option{background:#1a1d2e}
-
-/* ── Buttons ──────────────────────────────────────────────── */
-.btn{display:inline-flex;align-items:center;gap:6px;padding:9px 18px;border-radius:8px;
-  border:none;font-size:13px;font-weight:600;cursor:pointer;transition:all .15s;font-family:inherit;white-space:nowrap}
-.btn-primary{background:var(--accent);color:#fff} .btn-primary:hover{filter:brightness(1.1)}
-.btn-ghost{background:transparent;color:var(--muted);border:1px solid var(--border)}
-.btn-ghost:hover{background:var(--card);color:var(--text)}
-.btn-danger{background:var(--red);color:#fff} .btn-danger:hover{filter:brightness(.9)}
-.btn-sm{padding:6px 12px;font-size:12px;border-radius:6px}
-
-/* ── Pills ────────────────────────────────────────────────── */
-.pill{display:inline-block;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:600}
-.pill-view{background:var(--cyan-soft);color:var(--cyan)}
-.pill-click{background:var(--green-soft);color:var(--green)}
-.pill-a{background:var(--accent-soft);color:var(--accent)}
-.pill-b{background:var(--purple-soft);color:var(--purple)}
-.pill-cat{background:var(--orange-soft);color:var(--orange);font-size:10.5px}
-.pill-admin{background:var(--green-soft);color:var(--green);font-size:10px}
-.pill-user{background:var(--accent-soft);color:var(--accent);font-size:10px}
-
-/* ── CTR bar ──────────────────────────────────────────────── */
-.ctr-wrap{display:flex;align-items:center;gap:8px;min-width:100px}
-.ctr-track{flex:1;background:var(--bg);border-radius:4px;height:6px;overflow:hidden}
-.ctr-fill{height:100%;border-radius:4px;background:var(--accent);transition:width .4s ease}
-.ctr-label{font-size:11px;color:var(--muted);min-width:36px;text-align:right}
-
-/* ── Chart ────────────────────────────────────────────────── */
-.chart-outer{background:var(--bg);border-radius:10px;padding:16px 12px 10px;overflow-x:auto}
-.chart-bars{display:flex;align-items:flex-end;gap:10px;height:120px;min-width:300px}
-.bar-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;height:100%;justify-content:flex-end}
-.bar-fill{width:100%;border-radius:4px 4px 0 0;background:var(--accent);min-height:4px;transition:height .5s ease}
-.bar-label{font-size:9px;color:var(--muted);text-align:center;word-break:break-word;max-width:56px;line-height:1.3}
-
-/* ── Scrollable list ──────────────────────────────────────── */
-.scroll-list{max-height:360px;overflow-y:auto;border-radius:10px}
-.list-item{display:flex;align-items:center;gap:12px;padding:12px 14px;
-  border-bottom:1px solid var(--border);cursor:pointer;transition:background .12s}
-.list-item:last-child{border-bottom:none}
-.list-item:hover{background:var(--card-hover)}
-.list-item.selected{background:var(--accent-soft)}
-.list-id{width:28px;height:28px;border-radius:50%;background:var(--accent-soft);
-  border:1px solid rgba(91,104,255,.4);display:flex;align-items:center;justify-content:center;
-  font-size:10px;font-weight:700;color:var(--accent);flex-shrink:0}
-
-/* Detail rows */
-.drow{display:flex;justify-content:space-between;align-items:center;
-  padding:11px 0;border-bottom:1px solid var(--border)}
-.drow:last-child{border-bottom:none}
-.dkey{font-size:12px;color:var(--muted)}
-.dval{font-size:14px;font-weight:700}
-
-/* ── Ad preview ───────────────────────────────────────────── */
-.ad-preview{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:18px}
-.ad-badge-sm{display:inline-block;font-size:9px;font-weight:700;background:var(--border);
-  color:var(--muted);border-radius:3px;padding:2px 7px;text-transform:uppercase;
-  letter-spacing:.07em;margin-bottom:10px}
-
-/* ── Danger zone ──────────────────────────────────────────── */
-.danger-zone{border:1px solid rgba(239,68,68,.3);border-radius:12px;padding:20px 22px}
-
-/* ── Misc ─────────────────────────────────────────────────── */
-.empty{padding:40px;text-align:center;color:var(--muted);font-size:13px}
-.loading{padding:32px;text-align:center;color:var(--muted);font-size:13px;animation:pulse 1.2s infinite}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
-.mb-4{margin-bottom:16px}.mb-5{margin-bottom:20px}.mb-6{margin-bottom:24px}
-.mt-3{margin-top:12px}.mt-4{margin-top:16px}
-.flex{display:flex}.flex-center{display:flex;align-items:center}
-.gap-2{gap:8px}.gap-3{gap:12px}.jbet{justify-content:space-between}
-.text-muted{color:var(--muted);font-size:12px}
-::-webkit-scrollbar{width:5px;height:5px}
-::-webkit-scrollbar-track{background:transparent}
-::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
-
-/* Toast */
-#toast{position:fixed;bottom:24px;right:24px;background:var(--card);border:1px solid var(--border);
-  border-radius:10px;padding:12px 18px;font-size:13px;color:var(--text);
-  box-shadow:0 8px 24px rgba(0,0,0,.35);z-index:9999;
-  transform:translateY(80px);opacity:0;transition:all .3s;max-width:320px}
-#toast.show{transform:translateY(0);opacity:1}
-#toast.ok{border-left:3px solid var(--green)}
-#toast.err{border-left:3px solid var(--red)}
-</style>
-</head>
-<body>
-<div id="splash"><div class="sp-icon">M</div><div class="sp-name">MABlytic</div><div class="sp-sub">Admin Dashboard</div><div class="sp-bar"><div class="sp-fill"></div></div></div>
-<div class="sidebar-backdrop" id="sidebar-backdrop"></div>
-
-<!-- ═══ SIDEBAR ═════════════════════════════════════════════ -->
-<aside class="sidebar">
-  <div class="logo">
-    <div class="logo-icon">M</div>
-    <span class="logo-name">MABlytic</span>
-    <button class="sidebar-close" id="sidebar-close" type="button" aria-label="Close navigation">×</button>
-  </div>
-  <nav class="nav">
-    <button class="nav-item active" data-page="home">
-      <div class="nav-icon">🏠</div>Home
-    </button>
-    <button class="nav-item" data-page="analysis">
-      <div class="nav-icon">📊</div>Ad Analysis
-    </button>
-    <button class="nav-item" data-page="users">
-      <div class="nav-icon">👥</div>User Management
-    </button>
-    <button class="nav-item" data-page="ads">
-      <div class="nav-icon">📢</div>Ad Management
-    </button>
-    <button class="nav-item" data-page="history">
-      <div class="nav-icon">📜</div>Interaction Log
-    </button>
-    <button class="nav-item" data-page="api">
-      <div class="nav-icon">⚙️</div>API Console
-    </button>
-  </nav>
-
-  <div class="sep"></div>
-  <div class="settings-lbl">Settings</div>
-  <button class="nav-item" id="theme-btn">
-    <div class="nav-icon">🌙</div><span id="theme-lbl">Light Mode</span>
-  </button>
-  <button class="nav-item" id="clear-btn" style="color:var(--red)">
-    <div class="nav-icon" style="background:var(--red-soft)">🗑</div>Clear All Data
-  </button>
-  <button class="nav-item" onclick="logout()" style="color:var(--muted)">
-    <div class="nav-icon">🚪</div>Log Out
-  </button>
-  <div class="sep"></div>
-  <div class="user-row">
-    <div class="user-av" id="admin-av">A</div>
-    <div class="user-info">
-      <strong id="admin-name" style="font-size:12px">Admin</strong>
-      <small id="admin-username">@admin</small>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+    <meta
+      name="robots"
+      content="noindex,nofollow,noarchive,nosnippet,noimageindex,nocache,max-snippet:0,max-image-preview:none,max-video-preview:-1"
+    />
+    <title>MABlytic Admin</title>
+    <link rel="manifest" href="manifest.json" />
+    <meta name="theme-color" content="#0d1017" />
+    <link rel="stylesheet" href="css/styles.css" />
+    <link rel="stylesheet" href="css/admin.css" />
+  </head>
+  <body>
+    <div id="splash">
+      <div class="sp-icon">M</div>
+      <div class="sp-name">MABlytic</div>
+      <div class="sp-sub">Admin Dashboard</div>
+      <div class="sp-bar"><div class="sp-fill"></div></div>
     </div>
-  </div>
-</aside>
+    <div class="sidebar-backdrop" id="sidebar-backdrop"></div>
 
-<!-- ═══ MAIN ═════════════════════════════════════════════════ -->
-<div class="main">
-  <div class="topbar">
-    <button class="sidebar-toggle" id="sidebar-toggle" type="button" aria-label="Open navigation" aria-expanded="false">☰</button>
-    <span class="topbar-title" id="topbar-title">MABlytic Admin Dashboard</span>
-    <span class="badge badge-admin">ADMIN</span>
-    <div class="spacer"></div>
-    <div class="backend-badge">
-      <div class="dot" id="status-dot"></div>
-      <span id="status-lbl">Checking…</span>
-    </div>
-    <button class="btn btn-ghost btn-sm" style="margin-left:8px" onclick="logout()">Log Out</button>
-  </div>
+    <!-- ═══ SIDEBAR ═════════════════════════════════════════════ -->
+    <aside class="sidebar">
+      <div class="logo">
+        <div class="logo-icon">M</div>
+        <span class="logo-name">MABlytic</span>
+        <button
+          class="sidebar-close"
+          id="sidebar-close"
+          type="button"
+          aria-label="Close navigation"
+        >
+          ×
+        </button>
+      </div>
+      <nav class="nav">
+        <button class="nav-item active" data-page="home">
+          <div class="nav-icon">🏠</div>
+          Home
+        </button>
+        <button class="nav-item" data-page="analysis">
+          <div class="nav-icon">📊</div>
+          Ad Analysis
+        </button>
+        <button class="nav-item" data-page="users">
+          <div class="nav-icon">👥</div>
+          User Management
+        </button>
+        <button class="nav-item" data-page="ads">
+          <div class="nav-icon">📢</div>
+          Ad Management
+        </button>
+        <button class="nav-item" data-page="history">
+          <div class="nav-icon">📜</div>
+          Interaction Log
+        </button>
+        <button class="nav-item" data-page="api">
+          <div class="nav-icon">⚙️</div>
+          API Console
+        </button>
+      </nav>
 
-  <div class="content">
-
-    <!-- ══ HOME ═══════════════════════════════════════════ -->
-    <div class="page active" id="page-home">
-      <div class="welcome-card mb-5">
-        <div class="aw-logo">M</div>
-        <div class="welcome-title">Welcome to MABlytic Admin</div>
-        <div class="welcome-sub">
-          Full dashboard for persona management, ad analytics, A/B testing, and interaction tracking.
+      <div class="sep"></div>
+      <div class="settings-lbl">Settings</div>
+      <button class="nav-item" id="theme-btn">
+        <div class="nav-icon">🌙</div>
+        <span id="theme-lbl">Light Mode</span>
+      </button>
+      <button class="nav-item" id="clear-btn" style="color: var(--red)">
+        <div class="nav-icon" style="background: var(--red-soft)">🗑</div>
+        Clear All Data
+      </button>
+      <button class="nav-item" onclick="logout()" style="color: var(--muted)">
+        <div class="nav-icon">🚪</div>
+        Log Out
+      </button>
+      <div class="sep"></div>
+      <div class="user-row">
+        <div class="user-av" id="admin-av">A</div>
+        <div class="user-info">
+          <strong id="admin-name" style="font-size: 12px">Admin</strong>
+          <small id="admin-username">@admin</small>
         </div>
       </div>
-      <div class="stats-row mb-5">
-        <div class="stat-card"><div class="stat-icon" style="background:var(--accent-soft)">👥</div><div><div class="stat-value" id="h-users">—</div><div class="stat-label">Total Users</div></div></div>
-        <div class="stat-card"><div class="stat-icon" style="background:var(--orange-soft)">📢</div><div><div class="stat-value" id="h-ads">—</div><div class="stat-label">Total Ads</div></div></div>
-        <div class="stat-card"><div class="stat-icon" style="background:var(--cyan-soft)">👁</div><div><div class="stat-value" id="h-views">—</div><div class="stat-label">Total Views</div></div></div>
-        <div class="stat-card"><div class="stat-icon" style="background:var(--green-soft)">🖱</div><div><div class="stat-value" id="h-clicks">—</div><div class="stat-label">Total Clicks</div></div></div>
-        <div class="stat-card"><div class="stat-icon" style="background:var(--purple-soft)">🎯</div><div><div class="stat-value" id="h-ctr">—</div><div class="stat-label">Global CTR</div></div></div>
-      </div>
-    </div>
+    </aside>
 
-    <!-- ══ AD ANALYSIS ════════════════════════════════════ -->
-    <div class="page" id="page-analysis">
-      <div class="stats-row mb-5">
-        <div class="stat-card"><div class="stat-icon" style="background:var(--cyan-soft)">👁</div><div><div class="stat-value" id="an-views">—</div><div class="stat-label">Views</div></div></div>
-        <div class="stat-card"><div class="stat-icon" style="background:var(--green-soft)">🖱</div><div><div class="stat-value" id="an-clicks">—</div><div class="stat-label">Clicks</div></div></div>
-        <div class="stat-card"><div class="stat-icon" style="background:var(--purple-soft)">🎯</div><div><div class="stat-value" id="an-ctr">—</div><div class="stat-label">Global CTR</div></div></div>
-        <div class="stat-card"><div class="stat-icon" style="background:var(--orange-soft)">📢</div><div><div class="stat-value" id="an-ads">—</div><div class="stat-label">Ads</div></div></div>
+    <!-- ═══ MAIN ═════════════════════════════════════════════════ -->
+    <div class="main">
+      <div class="topbar">
+        <button
+          class="sidebar-toggle"
+          id="sidebar-toggle"
+          type="button"
+          aria-label="Open navigation"
+          aria-expanded="false"
+        >
+          ☰
+        </button>
+        <span class="topbar-title" id="topbar-title"
+          >MABlytic Admin Dashboard</span
+        >
+        <span class="badge badge-admin">ADMIN</span>
+        <div class="spacer"></div>
+        <div class="backend-badge">
+          <div class="dot" id="status-dot"></div>
+          <span id="status-lbl">Checking…</span>
+        </div>
+        <button
+          class="btn btn-ghost btn-sm"
+          style="margin-left: 8px"
+          onclick="logout()"
+        >
+          Log Out
+        </button>
       </div>
-      <div class="mb-5">
-        <div class="card">
-          <div class="card-title">Serve Ad — Live Test</div>
-          <div class="form-group"><label>User ID</label><input type="number" id="srv-uid" placeholder="e.g. 2" min="1"/></div>
-          <button class="btn btn-primary mb-4" onclick="serveAd()">▶ Serve Ad</button>
-          <div id="srv-result" style="display:none">
-            <div class="ad-preview">
-              <div class="ad-badge-sm">Sponsored</div>
-              <div style="font-size:14px;font-weight:700;margin-bottom:6px" id="srv-title"></div>
-              <div style="font-size:12px;color:var(--muted);margin-bottom:12px" id="srv-body"></div>
+
+      <div class="content">
+        <!-- ══ HOME ═══════════════════════════════════════════ -->
+        <div class="page active" id="page-home">
+          <div class="welcome-card mb-5">
+            <div class="aw-logo">M</div>
+            <div class="welcome-title">Welcome to MABlytic Admin</div>
+            <div class="welcome-sub">
+              Full dashboard for persona management, ad analytics, A/B testing,
+              and interaction tracking.
+            </div>
+          </div>
+          <div class="stats-row mb-5">
+            <div class="stat-card">
+              <div class="stat-icon" style="background: var(--accent-soft)">
+                👥
+              </div>
+              <div>
+                <div class="stat-value" id="h-users">—</div>
+                <div class="stat-label">Total Users</div>
+              </div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon" style="background: var(--orange-soft)">
+                📢
+              </div>
+              <div>
+                <div class="stat-value" id="h-ads">—</div>
+                <div class="stat-label">Total Ads</div>
+              </div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon" style="background: var(--cyan-soft)">
+                👁
+              </div>
+              <div>
+                <div class="stat-value" id="h-views">—</div>
+                <div class="stat-label">Total Views</div>
+              </div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon" style="background: var(--green-soft)">
+                🖱
+              </div>
+              <div>
+                <div class="stat-value" id="h-clicks">—</div>
+                <div class="stat-label">Total Clicks</div>
+              </div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon" style="background: var(--purple-soft)">
+                🎯
+              </div>
+              <div>
+                <div class="stat-value" id="h-ctr">—</div>
+                <div class="stat-label">Global CTR</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ══ AD ANALYSIS ════════════════════════════════════ -->
+        <div class="page" id="page-analysis">
+          <div class="stats-row mb-5">
+            <div class="stat-card">
+              <div class="stat-icon" style="background: var(--cyan-soft)">
+                👁
+              </div>
+              <div>
+                <div class="stat-value" id="an-views">—</div>
+                <div class="stat-label">Views</div>
+              </div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon" style="background: var(--green-soft)">
+                🖱
+              </div>
+              <div>
+                <div class="stat-value" id="an-clicks">—</div>
+                <div class="stat-label">Clicks</div>
+              </div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon" style="background: var(--purple-soft)">
+                🎯
+              </div>
+              <div>
+                <div class="stat-value" id="an-ctr">—</div>
+                <div class="stat-label">Global CTR</div>
+              </div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon" style="background: var(--orange-soft)">
+                📢
+              </div>
+              <div>
+                <div class="stat-value" id="an-ads">—</div>
+                <div class="stat-label">Ads</div>
+              </div>
+            </div>
+          </div>
+          <div class="mb-5">
+            <div class="card">
+              <div class="card-title">Serve Ad — Live Test</div>
+              <div class="form-group">
+                <label>User ID</label
+                ><input
+                  type="number"
+                  id="srv-uid"
+                  placeholder="e.g. 2"
+                  min="1"
+                />
+              </div>
+              <button class="btn btn-primary mb-4" onclick="serveAd()">
+                ▶ Serve Ad
+              </button>
+              <div id="srv-result" style="display: none">
+                <div class="ad-preview">
+                  <div class="ad-badge-sm">Sponsored</div>
+                  <div
+                    style="
+                      font-size: 14px;
+                      font-weight: 700;
+                      margin-bottom: 6px;
+                    "
+                    id="srv-title"
+                  ></div>
+                  <div
+                    style="
+                      font-size: 12px;
+                      color: var(--muted);
+                      margin-bottom: 12px;
+                    "
+                    id="srv-body"
+                  ></div>
+                  <div class="flex-center gap-2 mb-4">
+                    <span class="pill pill-cat" id="srv-cat"></span>
+                    <span class="pill" id="srv-var"></span>
+                  </div>
+                  <div class="flex-center gap-2">
+                    <button
+                      class="btn btn-sm"
+                      style="background: var(--green); color: #fff"
+                      onclick="logClick()"
+                    >
+                      👆 Log Click
+                    </button>
+                    <span style="font-size: 11px; color: var(--muted)"
+                      >View auto-logged on serve</span
+                    >
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="section-header mb-4">
+            <span class="section-title"
+              >Per-Ad Analytics (GET /admin/analytics)</span
+            ><button class="btn btn-ghost btn-sm" onclick="loadAnalytics()">
+              ↻
+            </button>
+          </div>
+          <div class="card" style="padding: 0; overflow: hidden">
+            <div class="tbl-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Title</th>
+                    <th>Category</th>
+                    <th>Variant</th>
+                    <th>Views</th>
+                    <th>Clicks</th>
+                    <th>CTR</th>
+                  </tr>
+                </thead>
+                <tbody id="an-table">
+                  <tr>
+                    <td colspan="7"><div class="loading">Loading…</div></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- ══ USER MANAGEMENT ════════════════════════════════ -->
+        <div class="page" id="page-users">
+          <div class="grid-2">
+            <div>
+              <div class="section-header mb-4">
+                <span class="section-title">All Registered Users</span
+                ><button class="btn btn-ghost btn-sm" onclick="loadUsers()">
+                  ↻
+                </button>
+              </div>
+              <div class="card" style="padding: 0; overflow: hidden">
+                <div class="scroll-list" id="user-list">
+                  <div class="loading">Loading…</div>
+                </div>
+              </div>
+              <div class="card mt-4">
+                <div class="card-title">Lookup User (GET /users/{id})</div>
+                <div class="form-group">
+                  <label>User ID</label
+                  ><input type="number" id="lkp-uid" placeholder="1" min="1" />
+                </div>
+                <button class="btn btn-ghost" onclick="lookupUser()">
+                  🔍 Lookup
+                </button>
+                <div id="lkp-result" class="mt-3"></div>
+              </div>
+              <div class="card mt-4">
+                <div class="card-title">Delete User (DELETE /users/{id})</div>
+                <div class="form-group">
+                  <label>User ID</label
+                  ><input type="number" id="del-uid" placeholder="5" min="1" />
+                </div>
+                <button class="btn btn-danger btn-sm" onclick="deleteUser()">
+                  🗑 Delete User
+                </button>
+              </div>
+            </div>
+            <div>
+              <div class="section-title mb-4">Persona Analytics</div>
+              <div class="card" id="user-detail">
+                <div class="empty">Select a user</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ══ AD MANAGEMENT ══════════════════════════════════ -->
+        <div class="page" id="page-ads">
+          <div class="grid-2">
+            <div class="card">
+              <div class="card-title">Create Ad (POST /ads/)</div>
+              <div class="form-group">
+                <label>Title</label
+                ><input
+                  type="text"
+                  id="ad-title"
+                  placeholder="TechPro Laptop 2026"
+                />
+              </div>
+              <div class="form-group">
+                <label>Content</label
+                ><textarea id="ad-content" placeholder="Ad copy…"></textarea>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label>Category</label
+                  ><input type="text" id="ad-cat" placeholder="tech" />
+                </div>
+                <div class="form-group">
+                  <label>Variant (A/B only)</label>
+                  <select id="ad-variant">
+                    <option value="A">A</option>
+                    <option value="B">B</option>
+                  </select>
+                </div>
+              </div>
+              <div class="form-group">
+                <label>Image URL (optional — for future use)</label
+                ><input type="text" id="ad-img" placeholder="https://…" />
+              </div>
+              <button class="btn btn-primary" onclick="createAd()">
+                ✨ Publish Ad
+              </button>
+            </div>
+            <div>
+              <div class="section-header mb-4">
+                <span class="section-title">All Ads (GET /admin/ads)</span
+                ><button class="btn btn-ghost btn-sm" onclick="loadAds()">
+                  ↻
+                </button>
+              </div>
+              <div class="card" style="padding: 0; overflow: hidden">
+                <div class="scroll-list" id="ad-list">
+                  <div class="loading">Loading…</div>
+                </div>
+              </div>
+              <div class="card mt-4">
+                <div class="card-title">Delete Ad (DELETE /ads/{id})</div>
+                <div class="form-group">
+                  <label>Ad ID</label
+                  ><input type="number" id="del-aid" placeholder="3" min="1" />
+                </div>
+                <button class="btn btn-danger btn-sm" onclick="deleteAd()">
+                  🗑 Delete Ad
+                </button>
+              </div>
+            </div>
+          </div>
+          <div class="mt-4" id="ad-detail-wrap" style="display: none">
+            <div class="section-title mb-4">
+              Ad Performance (GET /admin/analytics/ad/{id})
+            </div>
+            <div class="card" id="ad-detail"></div>
+          </div>
+        </div>
+
+        <!-- ══ INTERACTION LOG ════════════════════════════════ -->
+        <div class="page" id="page-history">
+          <div class="section-header mb-4">
+            <span class="section-title"
+              >Interaction Log (GET /admin/history)</span
+            >
+            <div class="flex-center gap-2">
+              <select
+                id="hist-limit"
+                style="width: auto; padding: 7px 10px"
+                onchange="loadHistory()"
+              >
+                <option value="20">Last 20</option>
+                <option value="50">Last 50</option>
+                <option value="100">Last 100</option>
+              </select>
+              <button class="btn btn-ghost btn-sm" onclick="loadHistory()">
+                ↻
+              </button>
+            </div>
+          </div>
+          <div class="card" style="padding: 0; overflow: hidden">
+            <div class="tbl-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>Timestamp</th>
+                    <th>User</th>
+                    <th>Preferences</th>
+                    <th>Ad Title</th>
+                    <th>Variant</th>
+                    <th>Type</th>
+                  </tr>
+                </thead>
+                <tbody id="hist-body">
+                  <tr>
+                    <td colspan="7"><div class="loading">Loading…</div></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <div class="card mt-4">
+            <div class="card-title">
+              Log Manual Interaction (POST /interactions/)
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label>User ID</label
+                ><input type="number" id="mi-uid" placeholder="1" />
+              </div>
+              <div class="form-group">
+                <label>Ad ID</label
+                ><input type="number" id="mi-aid" placeholder="1" />
+              </div>
+              <div class="form-group">
+                <label>Type</label
+                ><select id="mi-type">
+                  <option value="view">view</option>
+                  <option value="click">click</option>
+                </select>
+              </div>
+            </div>
+            <button class="btn btn-primary btn-sm" onclick="logManual()">
+              Log Interaction
+            </button>
+          </div>
+          <div class="card mt-4">
+            <div class="card-title">
+              Full Interaction List (GET /interactions/)
+            </div>
+            <div class="form-group">
+              <label>Limit</label
+              ><input
+                type="number"
+                id="ints-limit"
+                value="20"
+                style="width: 120px"
+              />
+            </div>
+            <button class="btn btn-ghost btn-sm" onclick="loadInteractions()">
+              Fetch All Interactions
+            </button>
+            <div id="ints-result" class="mt-3"></div>
+          </div>
+        </div>
+
+        <!-- ══ API CONSOLE ════════════════════════════════════ -->
+        <div class="page" id="page-api">
+          <div class="section-title mb-4">API Console — All Endpoints</div>
+          <div class="grid-2">
+            <!-- Auth -->
+            <div class="card mb-4">
+              <div class="card-title">🔐 Auth Endpoints</div>
+              <div
+                style="
+                  font-size: 12px;
+                  color: var(--muted);
+                  margin-bottom: 14px;
+                "
+              >
+                POST /auth/login · POST /auth/register · GET /auth/profile/{id}
+              </div>
+              <div class="form-group">
+                <label>Username</label
+                ><input type="text" id="api-uname" placeholder="alice" />
+              </div>
+              <div class="form-group">
+                <label>Password</label
+                ><input type="password" id="api-pass" placeholder="Tech12" />
+              </div>
+              <div class="flex-center gap-2 mt-3">
+                <button class="btn btn-primary btn-sm" onclick="apiLogin()">
+                  Login Test
+                </button>
+                <input
+                  type="number"
+                  id="api-prof-id"
+                  placeholder="User ID"
+                  style="width: 100px"
+                />
+                <button class="btn btn-ghost btn-sm" onclick="apiGetProfile()">
+                  Get Profile
+                </button>
+              </div>
+              <div id="api-auth-result" class="mt-3"></div>
+            </div>
+
+            <!-- Users -->
+            <div class="card mb-4">
+              <div class="card-title">👥 User Endpoints</div>
+              <div
+                style="
+                  font-size: 12px;
+                  color: var(--muted);
+                  margin-bottom: 14px;
+                "
+              >
+                GET /users/ · GET /users/{id} · POST /users/ · DELETE
+                /users/{id}
+              </div>
+              <button
+                class="btn btn-ghost btn-sm mb-4"
+                onclick="apiListUsers()"
+              >
+                GET /users/ (all)
+              </button>
+              <div id="api-users-result" class="mt-3"></div>
+            </div>
+
+            <!-- Serve + Interactions -->
+            <div class="card mb-4">
+              <div class="card-title">🎯 Serve &amp; Interactions</div>
+              <div
+                style="
+                  font-size: 12px;
+                  color: var(--muted);
+                  margin-bottom: 14px;
+                "
+              >
+                GET /serve-ad/{uid} · POST /interactions/ · GET /interactions/
+              </div>
               <div class="flex-center gap-2 mb-4">
-                <span class="pill pill-cat" id="srv-cat"></span>
-                <span class="pill" id="srv-var"></span>
+                <input
+                  type="number"
+                  id="api-serve-uid"
+                  placeholder="User ID"
+                  style="width: 100px"
+                />
+                <button class="btn btn-primary btn-sm" onclick="apiServeAd()">
+                  Serve Ad
+                </button>
+              </div>
+              <div id="api-serve-result"></div>
+            </div>
+
+            <!-- Admin stats -->
+            <div class="card mb-4">
+              <div class="card-title">📊 Admin Analytics</div>
+              <div
+                style="
+                  font-size: 12px;
+                  color: var(--muted);
+                  margin-bottom: 14px;
+                "
+              >
+                GET /admin/dashboard-stats · GET /admin/analytics
               </div>
               <div class="flex-center gap-2">
-                <button class="btn btn-sm" style="background:var(--green);color:#fff" onclick="logClick()">👆 Log Click</button>
-                <span style="font-size:11px;color:var(--muted)">View auto-logged on serve</span>
+                <button class="btn btn-ghost btn-sm" onclick="apiStats()">
+                  Dashboard Stats
+                </button>
+                <button
+                  class="btn btn-ghost btn-sm"
+                  onclick="apiAllAnalytics()"
+                >
+                  All Ad Analytics
+                </button>
+              </div>
+              <div id="api-stats-result" class="mt-3"></div>
+            </div>
+
+            <!-- DB -->
+            <div class="card mb-4">
+              <div class="card-title">🗄 Database</div>
+              <div
+                style="
+                  font-size: 12px;
+                  color: var(--muted);
+                  margin-bottom: 14px;
+                "
+              >
+                POST /clear-database/
+              </div>
+              <div class="danger-zone">
+                <div
+                  style="
+                    font-weight: 700;
+                    color: var(--red);
+                    margin-bottom: 6px;
+                  "
+                >
+                  ⚠ Danger Zone
+                </div>
+                <div class="text-muted mb-4">
+                  Permanently deletes all users, ads, and interactions.
+                </div>
+                <button class="btn btn-danger btn-sm" onclick="confirmClear()">
+                  Clear All Data
+                </button>
               </div>
             </div>
           </div>
         </div>
       </div>
-
-
-      <div class="section-header mb-4"><span class="section-title">Per-Ad Analytics (GET /admin/analytics)</span><button class="btn btn-ghost btn-sm" onclick="loadAnalytics()">↻</button></div>
-      <div class="card" style="padding:0;overflow:hidden">
-        <div class="tbl-wrap"><table>
-          <thead><tr><th>ID</th><th>Title</th><th>Category</th><th>Variant</th><th>Views</th><th>Clicks</th><th>CTR</th></tr></thead>
-          <tbody id="an-table"><tr><td colspan="7"><div class="loading">Loading…</div></td></tr></tbody>
-        </table></div>
-      </div>
+      <!-- /content -->
     </div>
+    <!-- /main -->
 
-    <!-- ══ USER MANAGEMENT ════════════════════════════════ -->
-    <div class="page" id="page-users">
-      <div class="grid-2">
-        <div>
-          <div class="section-header mb-4"><span class="section-title">All Registered Users</span><button class="btn btn-ghost btn-sm" onclick="loadUsers()">↻</button></div>
-          <div class="card" style="padding:0;overflow:hidden"><div class="scroll-list" id="user-list"><div class="loading">Loading…</div></div></div>
-          <div class="card mt-4">
-            <div class="card-title">Lookup User (GET /users/{id})</div>
-            <div class="form-group"><label>User ID</label><input type="number" id="lkp-uid" placeholder="1" min="1"/></div>
-            <button class="btn btn-ghost" onclick="lookupUser()">🔍 Lookup</button>
-            <div id="lkp-result" class="mt-3"></div>
-          </div>
-          <div class="card mt-4">
-            <div class="card-title">Delete User (DELETE /users/{id})</div>
-            <div class="form-group"><label>User ID</label><input type="number" id="del-uid" placeholder="5" min="1"/></div>
-            <button class="btn btn-danger btn-sm" onclick="deleteUser()">🗑 Delete User</button>
-          </div>
-        </div>
-        <div>
-          <div class="section-title mb-4">Persona Analytics</div>
-          <div class="card" id="user-detail"><div class="empty">Select a user</div></div>
-        </div>
-      </div>
-    </div>
+    <div id="toast"></div>
 
-    <!-- ══ AD MANAGEMENT ══════════════════════════════════ -->
-    <div class="page" id="page-ads">
-      <div class="grid-2">
-        <div class="card">
-          <div class="card-title">Create Ad (POST /ads/)</div>
-          <div class="form-group"><label>Title</label><input type="text" id="ad-title" placeholder="TechPro Laptop 2026"/></div>
-          <div class="form-group"><label>Content</label><textarea id="ad-content" placeholder="Ad copy…"></textarea></div>
-          <div class="form-row">
-            <div class="form-group"><label>Category</label><input type="text" id="ad-cat" placeholder="tech"/></div>
-            <div class="form-group">
-              <label>Variant (A/B only)</label>
-              <select id="ad-variant">
-                <option value="A">A</option>
-                <option value="B">B</option>
-              </select>
-            </div>
-          </div>
-          <div class="form-group"><label>Image URL (optional — for future use)</label><input type="text" id="ad-img" placeholder="https://…"/></div>
-          <button class="btn btn-primary" onclick="createAd()">✨ Publish Ad</button>
-        </div>
-        <div>
-          <div class="section-header mb-4"><span class="section-title">All Ads (GET /admin/ads)</span><button class="btn btn-ghost btn-sm" onclick="loadAds()">↻</button></div>
-          <div class="card" style="padding:0;overflow:hidden"><div class="scroll-list" id="ad-list"><div class="loading">Loading…</div></div></div>
-          <div class="card mt-4">
-            <div class="card-title">Delete Ad (DELETE /ads/{id})</div>
-            <div class="form-group"><label>Ad ID</label><input type="number" id="del-aid" placeholder="3" min="1"/></div>
-            <button class="btn btn-danger btn-sm" onclick="deleteAd()">🗑 Delete Ad</button>
-          </div>
-        </div>
-      </div>
-      <div class="mt-4" id="ad-detail-wrap" style="display:none">
-        <div class="section-title mb-4">Ad Performance (GET /admin/analytics/ad/{id})</div>
-        <div class="card" id="ad-detail"></div>
-      </div>
-    </div>
-
-    <!-- ══ INTERACTION LOG ════════════════════════════════ -->
-    <div class="page" id="page-history">
-      <div class="section-header mb-4">
-        <span class="section-title">Interaction Log (GET /admin/history)</span>
-        <div class="flex-center gap-2">
-          <select id="hist-limit" style="width:auto;padding:7px 10px" onchange="loadHistory()">
-            <option value="20">Last 20</option><option value="50">Last 50</option><option value="100">Last 100</option>
-          </select>
-          <button class="btn btn-ghost btn-sm" onclick="loadHistory()">↻</button>
-        </div>
-      </div>
-      <div class="card" style="padding:0;overflow:hidden">
-        <div class="tbl-wrap"><table>
-          <thead><tr><th>#</th><th>Timestamp</th><th>User</th><th>Preferences</th><th>Ad Title</th><th>Variant</th><th>Type</th></tr></thead>
-          <tbody id="hist-body"><tr><td colspan="7"><div class="loading">Loading…</div></td></tr></tbody>
-        </table></div>
-      </div>
-      <div class="card mt-4">
-        <div class="card-title">Log Manual Interaction (POST /interactions/)</div>
-        <div class="form-row">
-          <div class="form-group"><label>User ID</label><input type="number" id="mi-uid" placeholder="1"/></div>
-          <div class="form-group"><label>Ad ID</label><input type="number" id="mi-aid" placeholder="1"/></div>
-          <div class="form-group"><label>Type</label><select id="mi-type"><option value="view">view</option><option value="click">click</option></select></div>
-        </div>
-        <button class="btn btn-primary btn-sm" onclick="logManual()">Log Interaction</button>
-      </div>
-      <div class="card mt-4">
-        <div class="card-title">Full Interaction List (GET /interactions/)</div>
-        <div class="form-group"><label>Limit</label><input type="number" id="ints-limit" value="20" style="width:120px"/></div>
-        <button class="btn btn-ghost btn-sm" onclick="loadInteractions()">Fetch All Interactions</button>
-        <div id="ints-result" class="mt-3"></div>
-      </div>
-    </div>
-
-    <!-- ══ API CONSOLE ════════════════════════════════════ -->
-    <div class="page" id="page-api">
-      <div class="section-title mb-4">API Console — All Endpoints</div>
-      <div class="grid-2">
-
-        <!-- Auth -->
-        <div class="card mb-4">
-          <div class="card-title">🔐 Auth Endpoints</div>
-          <div style="font-size:12px;color:var(--muted);margin-bottom:14px">POST /auth/login · POST /auth/register · GET /auth/profile/{id}</div>
-          <div class="form-group"><label>Username</label><input type="text" id="api-uname" placeholder="alice"/></div>
-          <div class="form-group"><label>Password</label><input type="password" id="api-pass" placeholder="Tech12"/></div>
-          <div class="flex-center gap-2 mt-3">
-            <button class="btn btn-primary btn-sm" onclick="apiLogin()">Login Test</button>
-            <input type="number" id="api-prof-id" placeholder="User ID" style="width:100px"/>
-            <button class="btn btn-ghost btn-sm" onclick="apiGetProfile()">Get Profile</button>
-          </div>
-          <div id="api-auth-result" class="mt-3"></div>
-        </div>
-
-        <!-- Users -->
-        <div class="card mb-4">
-          <div class="card-title">👥 User Endpoints</div>
-          <div style="font-size:12px;color:var(--muted);margin-bottom:14px">GET /users/ · GET /users/{id} · POST /users/ · DELETE /users/{id}</div>
-          <button class="btn btn-ghost btn-sm mb-4" onclick="apiListUsers()">GET /users/ (all)</button>
-          <div id="api-users-result" class="mt-3"></div>
-        </div>
-
-        <!-- Serve + Interactions -->
-        <div class="card mb-4">
-          <div class="card-title">🎯 Serve &amp; Interactions</div>
-          <div style="font-size:12px;color:var(--muted);margin-bottom:14px">GET /serve-ad/{uid} · POST /interactions/ · GET /interactions/</div>
-          <div class="flex-center gap-2 mb-4">
-            <input type="number" id="api-serve-uid" placeholder="User ID" style="width:100px"/>
-            <button class="btn btn-primary btn-sm" onclick="apiServeAd()">Serve Ad</button>
-          </div>
-          <div id="api-serve-result"></div>
-        </div>
-
-        <!-- Admin stats -->
-        <div class="card mb-4">
-          <div class="card-title">📊 Admin Analytics</div>
-          <div style="font-size:12px;color:var(--muted);margin-bottom:14px">GET /admin/dashboard-stats · GET /admin/analytics</div>
-          <div class="flex-center gap-2">
-            <button class="btn btn-ghost btn-sm" onclick="apiStats()">Dashboard Stats</button>
-            <button class="btn btn-ghost btn-sm" onclick="apiAllAnalytics()">All Ad Analytics</button>
-          </div>
-          <div id="api-stats-result" class="mt-3"></div>
-        </div>
-
-        <!-- DB -->
-        <div class="card mb-4">
-          <div class="card-title">🗄 Database</div>
-          <div style="font-size:12px;color:var(--muted);margin-bottom:14px">POST /clear-database/</div>
-          <div class="danger-zone">
-            <div style="font-weight:700;color:var(--red);margin-bottom:6px">⚠ Danger Zone</div>
-            <div class="text-muted mb-4">Permanently deletes all users, ads, and interactions.</div>
-            <button class="btn btn-danger btn-sm" onclick="confirmClear()">Clear All Data</button>
-          </div>
-        </div>
-      </div>
-    </div>
-
-  </div><!-- /content -->
-</div><!-- /main -->
-
-<div id="toast"></div>
-
-<script>
-const API = (location.hostname === "localhost" || location.hostname === "127.0.0.1")
-  ? "http://127.0.0.1:8001"
-  : "https://mablytic.onrender.com";
-
-// ── Auth guard ────────────────────────────────────────────
-const session = JSON.parse(
-  localStorage.getItem("mablytic_session") || "null"
-);
-
-if (!session || !session.is_admin || !session.access_token) {
-  localStorage.removeItem("mablytic_session");
-  window.location.href = "/";
-} else {
-  document.getElementById("admin-name").textContent =
-    session.first_name || "Admin";
-
-  document.getElementById("admin-username").textContent =
-    "@" + (session.username || "admin");
-
-  document.getElementById("admin-av").textContent =
-    (session.first_name?.[0] || "A").toUpperCase();
-}
-
-function logout() {
-  localStorage.removeItem("mablytic_session");
-  window.location.href = "/";
-}
-
-// ── Globals ───────────────────────────────────────────────
-let currentAdId = null, currentServeUid = null;
-let selectedUserId = null, selectedAdId = null;
-
-const sidebarToggle = document.getElementById("sidebar-toggle");
-const sidebarClose = document.getElementById("sidebar-close");
-const sidebarBackdrop = document.getElementById("sidebar-backdrop");
-
-function setSidebar(open) {
-  document.body.classList.toggle("sidebar-open", open);
-  sidebarToggle.setAttribute("aria-expanded", String(open));
-}
-
-sidebarToggle.addEventListener("click",()=>setSidebar(!document.body.classList.contains("sidebar-open")));
-sidebarClose.addEventListener("click",()=>setSidebar(false));
-sidebarBackdrop.addEventListener("click",()=>setSidebar(false));
-document.addEventListener("keydown",e=>{ if(e.key==="Escape") setSidebar(false); });
-
-// ── Toast ─────────────────────────────────────────────────
-function toast(msg, type="ok") {
-  const el = document.getElementById("toast");
-  el.textContent = msg; el.className = `show ${type}`;
-  clearTimeout(el._t); el._t = setTimeout(()=>el.className="", 3500);
-}
-
-// ── Backend status ────────────────────────────────────────
-
-async function checkBackend() {
-  const dot = document.getElementById("status-dot");
-  const lbl = document.getElementById("status-lbl");
-
-  try {
-    await apiFetch("/admin/dashboard-stats");
-
-    dot.className = "dot online";
-    lbl.textContent = "Backend Active";
-  } catch (error) {
-    dot.className = "dot offline";
-
-    if (
-      error.message.includes("401") ||
-      error.message.includes("403") ||
-      error.message.includes("Authentication") ||
-      error.message.includes("Administrator")
-    ) {
-      lbl.textContent = "Backend Active · Auth Required";
-    } else {
-      lbl.textContent = "Backend Error";
-    }
-  }
-}
-
-// ── Navigation ────────────────────────────────────────────
-const PAGE_TITLES = { home:"MABlytic Admin Dashboard", analysis:"Ad Analysis",
-  users:"User Management", ads:"Ad Management", history:"Interaction Log", api:"API Console" };
-
-function goto(name) {
-  document.querySelectorAll(".nav-item[data-page]").forEach(el=>el.classList.toggle("active",el.dataset.page===name));
-  document.querySelectorAll(".page").forEach(el=>el.classList.remove("active"));
-  document.getElementById(`page-${name}`).classList.add("active");
-  document.getElementById("topbar-title").textContent = PAGE_TITLES[name]||name;
-  setSidebar(false);
-  if(name==="home")     loadHome();
-  if(name==="analysis") loadAnalysis();
-  if(name==="users")    loadUsers();
-  if(name==="ads")      loadAds();
-  if(name==="history")  loadHistory();
-}
-
-document.querySelectorAll(".nav-item[data-page]").forEach(el=>el.addEventListener("click",()=>goto(el.dataset.page)));
-
-// ── Theme ─────────────────────────────────────────────────
-let isDark=true;
-document.getElementById("theme-btn").addEventListener("click",()=>{
-  isDark=!isDark;
-  document.documentElement.setAttribute("data-theme",isDark?"dark":"light");
-  document.getElementById("theme-lbl").textContent = isDark?"Light Mode":"Dark Mode";
-  document.querySelector("#theme-btn .nav-icon").textContent = isDark?"🌙":"☀️";
-});
-
-// ── Clear ─────────────────────────────────────────────────
-document.getElementById("clear-btn").addEventListener("click", confirmClear);
-async function confirmClear() {
-  if(!confirm("⚠️ Delete ALL users, ads, and interactions? Cannot be undone.")) return;
-  try {
-    const r = await apiFetch("/clear-database/", {
-      method: "POST",
-    });
-    if(!r.ok) throw new Error((await r.json()).detail);
-    toast("✓ Database cleared","ok"); loadHome();
-  } catch(e) { toast(`✗ ${e.message}`,"err"); }
-}
-
-// ── Helpers ───────────────────────────────────────────────
-
-
-async function apiFetch(path, opts = {}) {
-  const token = session?.access_token;
-  const headers = new Headers(opts.headers || {});
-
-  if (token) {
-    headers.set("Authorization", `Bearer ${token}`);
-  }
-
-  const r = await fetch(`${API}${path}`, {
-    ...opts,
-    headers,
-  });
-
-  if (r.status === 401) {
-    localStorage.removeItem("mablytic_session");
-    window.location.replace("/");
-    throw new Error("Your session has expired. Please log in again.");
-  }
-
-  if (!r.ok) {
-    const d = await r.json().catch(() => ({}));
-    throw new Error(d.detail || `Request failed (${r.status})`);
-  }
-
-  return r.json();
-}
-
-
-
-function ctrColor(v) { return v>10?"var(--green)":v>3?"var(--cyan)":"var(--accent)"; }
-
-function variantPill(v) {
-  const cls = v==="A"?"pill-a":v==="B"?"pill-b":"badge-accent";
-  return `<span class="pill ${cls}">${v||"—"}</span>`;
-}
-
-function ctrBar(v) {
-  const pct=Math.min(v,100), c=ctrColor(v);
-  return `<div class="ctr-wrap"><div class="ctr-track"><div class="ctr-fill" style="width:${pct}%;background:${c}"></div></div><span class="ctr-label" style="color:${c}">${v}%</span></div>`;
-}
-
-function jsonBlock(data) {
-  return `<pre style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px;font-size:11px;overflow:auto;max-height:240px;color:var(--muted)">${JSON.stringify(data,null,2)}</pre>`;
-}
-
-function drow(key, val, color="var(--text)") {
-  return `<div class="drow"><span class="dkey">${key}</span><span class="dval" style="color:${color}">${val??'—'}</span></div>`;
-}
-
-// ── HOME ──────────────────────────────────────────────────
-async function loadHome() {
-  try {
-    const d=await apiFetch("/admin/dashboard-stats");
-    document.getElementById("h-users").textContent  = d.total_users??'—';
-    document.getElementById("h-ads").textContent    = d.total_ads??'—';
-    document.getElementById("h-views").textContent  = d.total_views??'—';
-    document.getElementById("h-clicks").textContent = d.total_clicks??'—';
-    document.getElementById("h-ctr").textContent    = `${d.global_ctr??'—'}%`;
-  } catch {}
-}
-
-// ── ANALYSIS ──────────────────────────────────────────────
-async function loadAnalysis() {
-  await Promise.all([loadDash(), loadAnalytics()]);
-}
-
-async function loadDash() {
-  try {
-    const d=await apiFetch("/admin/dashboard-stats");
-    document.getElementById("an-views").textContent  = d.total_views??'—';
-    document.getElementById("an-clicks").textContent = d.total_clicks??'—';
-    document.getElementById("an-ctr").textContent    = `${d.global_ctr??'—'}%`;
-    document.getElementById("an-ads").textContent    = d.total_ads??'—';
-  } catch {}
-}
-
-async function loadAnalytics() {
-  const tbody=document.getElementById("an-table");
-  const chart=document.getElementById("an-chart");
-  tbody.innerHTML=`<tr><td colspan="7"><div class="loading">Loading…</div></td></tr>`;
-  if(chart) chart.innerHTML=`<div class="loading" style="width:100%">Loading...</div>`;
-  try {
-    const data=await apiFetch("/admin/analytics");
-    if(!data.length){
-      tbody.innerHTML=`<tr><td colspan="7"><div class="empty">No analytics yet</div></td></tr>`;
-      if(chart) chart.innerHTML=`<div class="empty" style="width:100%">No analytics yet</div>`;
-      return;
-    }
-    tbody.innerHTML=data.map(a=>`<tr>
-      <td>${a.ad_id}</td>
-      <td style="font-weight:600">${a.title}</td>
-      <td><span class="pill pill-cat">${a.category}</span></td>
-      <td>${variantPill(a.variant)}</td>
-      <td>${a.views}</td><td>${a.clicks}</td>
-      <td>${ctrBar(a.ctr_percentage)}</td>
-    </tr>`).join("");
-    const maxCtr=Math.max(...data.map(d=>d.ctr_percentage),1);
-    if(chart) chart.innerHTML=data.map(a=>{
-      const h=Math.round((a.ctr_percentage/maxCtr)*100);
-      const c=a.ctr_percentage===maxCtr?"var(--green)":"var(--accent)";
-      return `<div class="bar-col" title="${a.title}: ${a.ctr_percentage}%">
-        <div class="bar-fill" style="height:${h}%;background:${c}"></div>
-        <div class="bar-label">${a.title}</div></div>`;
-    }).join("");
-  } catch(e){
-    tbody.innerHTML=`<tr><td colspan="7"><div class="empty">Error: ${e.message}</div></td></tr>`;
-    if(chart) chart.innerHTML=`<div class="empty" style="width:100%">Error: ${e.message}</div>`;
-  }
-}
-
-async function serveAd() {
-  const uid=parseInt(document.getElementById("srv-uid").value);
-  if(!uid){toast("Enter a valid User ID","err");return;}
-  currentServeUid=uid;
-  try {
-    const ad=await apiFetch(`/serve-ad/${uid}`);
-    currentAdId=ad.id;
-    document.getElementById("srv-title").textContent   = ad.title;
-    document.getElementById("srv-body").textContent    = ad.content;
-    document.getElementById("srv-cat").textContent     = ad.category;
-    document.getElementById("srv-var").className       = `pill ${ad.variant==="A"?"pill-a":"pill-b"}`;
-    document.getElementById("srv-var").textContent     = `Variant ${ad.variant}`;
-    document.getElementById("srv-result").style.display="block";
-    await apiFetch("/interactions/",{method:"POST",headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({user_id:uid,ad_id:ad.id,interaction_type:"view"})});
-    toast(`Served Ad #${ad.id} to User #${uid}. View logged.`,"ok");
-  } catch(e){ toast(`✗ ${e.message}`,"err"); }
-}
-
-async function logClick() {
-  if(!currentAdId||!currentServeUid){toast("Serve an ad first","err");return;}
-  try {
-    await apiFetch("/interactions/",{method:"POST",headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({user_id:currentServeUid,ad_id:currentAdId,interaction_type:"click"})});
-    toast("✓ Click logged","ok");
-  } catch(e){ toast(`✗ ${e.message}`,"err"); }
-}
-
-// ── USERS ─────────────────────────────────────────────────
-async function loadUsers() {
-  const list=document.getElementById("user-list");
-  list.innerHTML=`<div class="loading">Loading…</div>`;
-  try {
-    const users=await apiFetch("/admin/users");
-    if(!users.length){list.innerHTML=`<div class="empty">No users yet</div>`;return;}
-    list.innerHTML=users.map(u=>`
-      <div class="list-item ${selectedUserId===u.id?"selected":""}" onclick="selectUser(${u.id})" id="ur-${u.id}">
-        <div class="list-id">${u.id}</div>
-        <div style="flex:1;min-width:0">
-          <div style="font-size:13px;font-weight:600;margin-bottom:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
-            ${u.first_name||u.username} ${u.last_name||""}
-            <span class="pill ${u.is_admin?"pill-admin":"pill-user"}" style="margin-left:4px">${u.is_admin?"admin":"user"}</span>
-          </div>
-          <div style="font-size:11px;color:var(--muted)">@${u.username} · ${u.preferences||"—"}</div>
-        </div>
-      </div>`).join("");
-  } catch(e){ list.innerHTML=`<div class="empty">Error: ${e.message}</div>`; }
-}
-
-async function selectUser(id) {
-  selectedUserId=id;
-  document.querySelectorAll("[id^='ur-']").forEach(el=>el.classList.remove("selected"));
-  document.getElementById(`ur-${id}`)?.classList.add("selected");
-  const det=document.getElementById("user-detail");
-  det.innerHTML=`<div class="loading">Loading…</div>`;
-  try {
-    const d=await apiFetch(`/admin/analytics/user/${id}`);
-    det.innerHTML=`
-      <div class="card-title">User #${id}</div>
-      <div style="margin-bottom:14px;display:flex;gap:6px;flex-wrap:wrap">
-        <span class="pill pill-cat">${d.gender||"—"}</span>
-        ${(d.preferences||"").split(",").filter(Boolean).map(p=>`<span class="pill pill-cat">${p.trim()}</span>`).join("")}
-      </div>
-      ${drow("Full Name", `${d.full_name||"—"}`)}
-      ${drow("Username",  `@${d.username||"—"}`)}
-      ${drow("Email",     d.email||"—")}
-      ${drow("Age",       d.age||"—")}
-      ${drow("Total Views",  d.total_views,  "var(--cyan)")}
-      ${drow("Total Clicks", d.total_clicks, "var(--green)")}
-      ${drow("CTR", `${d.ctr}%`, ctrColor(d.ctr))}
-      <div style="margin-top:16px">
-        <div style="font-size:11px;color:var(--muted);margin-bottom:6px">CTR Visual</div>
-        <div class="ctr-track" style="height:8px"><div class="ctr-fill" style="width:${Math.min(d.ctr,100)}%;background:${ctrColor(d.ctr)}"></div></div>
-        <div style="font-size:11px;margin-top:4px;color:${ctrColor(d.ctr)}">${d.ctr}%</div>
-      </div>`;
-  } catch(e){ det.innerHTML=`<div class="empty">Error: ${e.message}</div>`; }
-}
-
-async function createPersona() {
-  const prefs=document.getElementById("new-prefs").value.trim();
-  if(!prefs){toast("Enter preferences","err");return;}
-  try {
-    const r=await apiFetch("/admin/users",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({preferences:prefs})});
-    toast(`✓ Persona @${r.username} created (ID ${r.user_id})`,"ok");
-    document.getElementById("new-prefs").value="";
-    loadUsers(); loadHome();
-  } catch(e){ toast(`✗ ${e.message}`,"err"); }
-}
-
-async function lookupUser() {
-  const uid=parseInt(document.getElementById("lkp-uid").value);
-  if(!uid){toast("Enter a user ID","err");return;}
-  const out=document.getElementById("lkp-result");
-  out.innerHTML=`<div class="loading">Looking up…</div>`;
-  try {
-    const u=await apiFetch(`/users/${uid}`);
-    out.innerHTML=`<div class="card" style="font-size:13px">
-      ${drow("ID", u.id)} ${drow("Username","@"+u.username)} ${drow("Name",`${u.first_name} ${u.last_name}`)}
-      ${drow("Email",u.email)} ${drow("Gender",u.gender)} ${drow("Age",u.age)}
-      ${drow("Preferences",u.preferences)}
-      ${drow("Created", new Date(u.created_at).toLocaleString())}
-      <button class="btn btn-ghost btn-sm mt-3" onclick="selectUser(${u.id});goto('users')">View Analytics →</button>
-    </div>`;
-  } catch(e){ out.innerHTML=`<div style="color:var(--red);font-size:12px">✗ ${e.message}</div>`; }
-}
-
-async function deleteUser() {
-  const uid=parseInt(document.getElementById("del-uid").value);
-  if(!uid){toast("Enter a user ID","err");return;}
-  if(!confirm(`Delete user #${uid} and all their interactions?`)) return;
-  try {
-    const r=await apiFetch(`/users/${uid}`,{method:"DELETE"});
-    toast(`✓ ${r.message}`,"ok"); loadUsers(); loadHome();
-  } catch(e){ toast(`✗ ${e.message}`,"err"); }
-}
-
-// ── ADS ───────────────────────────────────────────────────
-async function loadAds() {
-  const list=document.getElementById("ad-list");
-  list.innerHTML=`<div class="loading">Loading…</div>`;
-  try {
-    const ads=await apiFetch("/admin/ads");
-    if(!ads.length){list.innerHTML=`<div class="empty">No ads yet</div>`;return;}
-    list.innerHTML=ads.map(a=>`
-      <div class="list-item ${selectedAdId===a.id?"selected":""}" onclick="selectAd(${a.id})" id="ar-${a.id}">
-        <div class="list-id" style="background:var(--orange-soft);border-color:var(--orange);color:var(--orange)">${a.id}</div>
-        <div style="flex:1;min-width:0">
-          <div style="font-size:13px;font-weight:600;margin-bottom:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${a.title}</div>
-          <div style="display:flex;gap:6px"><span class="pill pill-cat">${a.category}</span>${variantPill(a.variant)}</div>
-        </div>
-      </div>`).join("");
-  } catch(e){ list.innerHTML=`<div class="empty">Error: ${e.message}</div>`; }
-}
-
-async function selectAd(id) {
-  selectedAdId=id;
-  document.querySelectorAll("[id^='ar-']").forEach(el=>el.classList.remove("selected"));
-  document.getElementById(`ar-${id}`)?.classList.add("selected");
-  const wrap=document.getElementById("ad-detail-wrap");
-  const det=document.getElementById("ad-detail");
-  wrap.style.display="block";
-  det.innerHTML=`<div class="loading">Loading…</div>`;
-  try {
-    const d=await apiFetch(`/admin/analytics/ad/${id}`);
-    det.innerHTML=`
-      <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:16px">
-        <div>
-          <div style="font-size:16px;font-weight:800;margin-bottom:8px">${d.title}</div>
-          <div style="display:flex;gap:8px"><span class="pill pill-cat">${d.category}</span>${variantPill(d.variant)}</div>
-        </div>
-        <div style="display:flex;gap:24px">
-          <div style="text-align:center"><div style="font-size:22px;font-weight:800;color:var(--cyan)">${d.total_views}</div><div style="font-size:11px;color:var(--muted)">Views</div></div>
-          <div style="text-align:center"><div style="font-size:22px;font-weight:800;color:var(--green)">${d.total_clicks}</div><div style="font-size:11px;color:var(--muted)">Clicks</div></div>
-          <div style="text-align:center"><div style="font-size:22px;font-weight:800;color:${ctrColor(d.ctr)}">${d.ctr}%</div><div style="font-size:11px;color:var(--muted)">CTR</div></div>
-        </div>
-      </div>
-      <div class="ctr-track" style="height:8px"><div class="ctr-fill" style="width:${Math.min(d.ctr,100)}%;background:${ctrColor(d.ctr)}"></div></div>
-      ${d.image_url?`<div style="margin-top:12px;font-size:12px;color:var(--muted)">Image URL: <a href="${d.image_url}" target="_blank" style="color:var(--accent)">${d.image_url}</a></div>`:""}`;
-  } catch(e){ det.innerHTML=`<div class="empty">Error: ${e.message}</div>`; }
-}
-
-async function createAd() {
-  const title=document.getElementById("ad-title").value.trim();
-  const content=document.getElementById("ad-content").value.trim();
-  const category=document.getElementById("ad-cat").value.trim().toLowerCase();
-  const variant=document.getElementById("ad-variant").value;
-  const image_url=document.getElementById("ad-img").value.trim();
-  if(!title||!content||!category){toast("Fill in title, content, category","err");return;}
-  try {
-    const ad=await apiFetch("/ads/",{method:"POST",headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({title,content,category,variant,image_url})});
-    toast(`✓ Ad #${ad.id} published`,"ok");
-    ["ad-title","ad-content","ad-cat","ad-img"].forEach(id=>document.getElementById(id).value="");
-    loadAds(); loadHome();
-  } catch(e){ toast(`✗ ${e.message}`,"err"); }
-}
-
-async function deleteAd() {
-  const aid=parseInt(document.getElementById("del-aid").value);
-  if(!aid){toast("Enter an ad ID","err");return;}
-  if(!confirm(`Delete ad #${aid} and all its interactions?`)) return;
-  try {
-    const r=await apiFetch(`/ads/${aid}`,{method:"DELETE"});
-    toast(`✓ ${r.message}`,"ok"); loadAds(); loadHome();
-  } catch(e){ toast(`✗ ${e.message}`,"err"); }
-}
-
-// ── HISTORY ───────────────────────────────────────────────
-async function loadHistory() {
-  const limit=document.getElementById("hist-limit").value;
-  const tbody=document.getElementById("hist-body");
-  tbody.innerHTML=`<tr><td colspan="7"><div class="loading">Loading…</div></td></tr>`;
-  try {
-    const data=await apiFetch(`/admin/history?limit=${limit}`);
-    if(!data.length){tbody.innerHTML=`<tr><td colspan="7"><div class="empty">No interactions yet</div></td></tr>`;return;}
-    tbody.innerHTML=data.map(row=>`<tr>
-      <td style="color:var(--muted)">${row.log_id}</td>
-      <td style="font-family:monospace;font-size:11px;color:var(--muted)">${row.timestamp}</td>
-      <td><div style="font-size:12px">@${row.username||row.user_id}</div></td>
-      <td><span class="pill pill-cat">${row.user_prefs}</span></td>
-      <td style="font-weight:500;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${row.ad_title}</td>
-      <td>${variantPill(row.variant)}</td>
-      <td><span class="pill ${row.type==="click"?"pill-click":"pill-view"}">${row.type}</span></td>
-    </tr>`).join("");
-  } catch(e){ tbody.innerHTML=`<tr><td colspan="7"><div class="empty">Error: ${e.message}</div></td></tr>`; }
-}
-
-async function logManual() {
-  const uid=parseInt(document.getElementById("mi-uid").value);
-  const aid=parseInt(document.getElementById("mi-aid").value);
-  const type=document.getElementById("mi-type").value;
-  if(!uid||!aid){toast("Enter both User ID and Ad ID","err");return;}
-  try {
-    await apiFetch("/interactions/",{method:"POST",headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({user_id:uid,ad_id:aid,interaction_type:type})});
-    toast(`✓ Interaction logged (${type})`,"ok"); loadHistory();
-  } catch(e){ toast(`✗ ${e.message}`,"err"); }
-}
-
-async function loadInteractions() {
-  const limit=document.getElementById("ints-limit").value||20;
-  const out=document.getElementById("ints-result");
-  out.innerHTML=`<div class="loading">Fetching…</div>`;
-  try {
-    const data=await apiFetch(`/interactions/?limit=${limit}`);
-    out.innerHTML=jsonBlock(data);
-  } catch(e){ out.innerHTML=`<div style="color:var(--red);font-size:12px">✗ ${e.message}</div>`; }
-}
-
-// ── API CONSOLE ───────────────────────────────────────────
-async function apiLogin() {
-  const username=document.getElementById("api-uname").value.trim();
-  const password=document.getElementById("api-pass").value;
-  const out=document.getElementById("api-auth-result");
-  try {
-    const d=await apiFetch("/auth/login",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({username,password})});
-    out.innerHTML=jsonBlock(d); toast("✓ Login test success","ok");
-  } catch(e){ out.innerHTML=`<div style="color:var(--red);font-size:12px">✗ ${e.message}</div>`; }
-}
-
-async function apiGetProfile() {
-  const uid=parseInt(document.getElementById("api-prof-id").value);
-  if(!uid){toast("Enter user ID","err");return;}
-  const out=document.getElementById("api-auth-result");
-  try { out.innerHTML=jsonBlock(await apiFetch(`/auth/profile/${uid}`)); }
-  catch(e){ out.innerHTML=`<div style="color:var(--red);font-size:12px">✗ ${e.message}</div>`; }
-}
-
-async function apiListUsers() {
-  const out=document.getElementById("api-users-result");
-  try { out.innerHTML=jsonBlock(await apiFetch("/users/")); }
-  catch(e){ out.innerHTML=`<div style="color:var(--red);font-size:12px">✗ ${e.message}</div>`; }
-}
-
-async function apiListAds() {
-  const out=document.getElementById("api-ads-result");
-  try { out.innerHTML=jsonBlock(await apiFetch("/ads/")); }
-  catch(e){ out.innerHTML=`<div style="color:var(--red);font-size:12px">✗ ${e.message}</div>`; }
-}
-
-async function apiGetAd() {
-  const aid=parseInt(document.getElementById("api-ad-id").value);
-  if(!aid){toast("Enter ad ID","err");return;}
-  const out=document.getElementById("api-ads-result");
-  try { out.innerHTML=jsonBlock(await apiFetch(`/ads/${aid}`)); }
-  catch(e){ out.innerHTML=`<div style="color:var(--red);font-size:12px">✗ ${e.message}</div>`; }
-}
-
-async function apiServeAd() {
-  const uid=parseInt(document.getElementById("api-serve-uid").value);
-  if(!uid){toast("Enter user ID","err");return;}
-  const out=document.getElementById("api-serve-result");
-  try { out.innerHTML=jsonBlock(await apiFetch(`/serve-ad/${uid}`)); }
-  catch(e){ out.innerHTML=`<div style="color:var(--red);font-size:12px">✗ ${e.message}</div>`; }
-}
-
-async function apiStats() {
-  const out=document.getElementById("api-stats-result");
-  try { out.innerHTML=jsonBlock(await apiFetch("/admin/dashboard-stats")); }
-  catch(e){ out.innerHTML=`<div style="color:var(--red);font-size:12px">✗ ${e.message}</div>`; }
-}
-
-async function apiAllAnalytics() {
-  const out=document.getElementById("api-stats-result");
-  try { out.innerHTML=jsonBlock(await apiFetch("/admin/analytics")); }
-  catch(e){ out.innerHTML=`<div style="color:var(--red);font-size:12px">✗ ${e.message}</div>`; }
-}
-
-// ── Init ──────────────────────────────────────────────────
-checkBackend();
-loadHome();
-setInterval(checkBackend, 30000);
-
-// Splash
-window.addEventListener('load', () => {
-  setTimeout(() => {
-    const s = document.getElementById('splash');
-    s.classList.add('hide');
-    setTimeout(() => s.remove(), 500);
-  }, 1600);
-});
-
-// Disable right-click & common DevTools shortcuts
-document.addEventListener('contextmenu', e => e.preventDefault());
-document.addEventListener('keydown', e => {
-  if (e.key === 'F12') { e.preventDefault(); return; }
-  if (e.ctrlKey && e.shiftKey && ['I','J','C'].includes(e.key)) { e.preventDefault(); return; }
-  if (e.ctrlKey && e.key === 'U') { e.preventDefault(); }
-});
-</script>
-</body>
+    <script src="js/admin.js"></script>
+  </body>
 </html>

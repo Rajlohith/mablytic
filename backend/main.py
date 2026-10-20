@@ -1,5 +1,6 @@
 import random
 import re
+from pathlib import Path
 
 import models
 import schemas
@@ -12,9 +13,10 @@ from auth import (
     verify_and_upgrade_password,
 )
 from database import engine, get_db
-from fastapi import Depends, FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import PlainTextResponse
+from fastapi.responses import FileResponse, PlainTextResponse
+from fastapi.staticfiles import StaticFiles
 from sqlalchemy import desc
 from sqlalchemy.orm import Session
 
@@ -28,6 +30,73 @@ app = FastAPI(
     redoc_url=None,
     openapi_url=None,
 )
+
+
+# ── Frontend pages ───────────────────────────────────────
+@app.get("/", include_in_schema=False)
+async def serve_index():
+    return FileResponse(FRONTEND_DIR / "index.html")
+
+
+@app.get("/{page_name}.html", include_in_schema=False)
+async def serve_html_page(page_name: str):
+    if not page_name.replace("-", "").replace("_", "").isalnum():
+        raise HTTPException(status_code=404, detail="Page not found.")
+
+    page_path = (FRONTEND_DIR / f"{page_name}.html").resolve()
+
+    if page_path.parent != FRONTEND_DIR.resolve() or not page_path.is_file():
+        raise HTTPException(status_code=404, detail="Page not found.")
+
+    return FileResponse(page_path)
+
+
+# ── Custom 404 page ──────────────────────────────────────
+FRONTEND_DIR = Path(__file__).resolve().parent.parent / "frontend"
+NOT_FOUND_PAGE = FRONTEND_DIR / "404.html"
+app.mount(
+    "/css",
+    StaticFiles(directory=FRONTEND_DIR / "css"),
+    name="frontend-css",
+)
+app.mount(
+    "/js",
+    StaticFiles(directory=FRONTEND_DIR / "js"),
+    name="frontend-js",
+)
+
+
+@app.exception_handler(404)
+async def custom_404_handler(request: Request, exc: HTTPException):
+    # Keep API errors in JSON format.
+    if request.url.path.startswith(
+        (
+            "/auth/",
+            "/users",
+            "/ads",
+            "/serve-ad/",
+            "/interactions",
+            "/admin/",
+            "/clear-database/",
+            "/health",
+            "/robots.txt",
+        )
+    ):
+        return {
+            "detail": str(exc.detail),
+        }
+
+    if NOT_FOUND_PAGE.is_file():
+        return FileResponse(
+            NOT_FOUND_PAGE,
+            status_code=404,
+            media_type="text/html",
+        )
+
+    return PlainTextResponse(
+        "404 — Page not found",
+        status_code=404,
+    )
 
 
 # Block crawlers
@@ -662,3 +731,11 @@ def admin_create_user(
         "user_id": new_user.id,
         "username": new_user.username,
     }
+
+
+# ── Frontend static files — keep this last ───────────────
+app.mount(
+    "/",
+    StaticFiles(directory=FRONTEND_DIR, html=True),
+    name="frontend",
+)

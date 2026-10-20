@@ -1,0 +1,297 @@
+body {
+  font-family: "Inter", system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background:
+    radial-gradient(
+      ellipse at 20% 30%,
+      rgba(91, 104, 255, 0.07) 0%,
+      transparent 60%
+    ),
+    radial-gradient(
+      ellipse at 80% 70%,
+      rgba(34, 197, 94, 0.05) 0%,
+      transparent 60%
+    );
+  pointer-events: none;
+}
+
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 36px;
+  width: 100%;
+  max-width: 480px;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.4);
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+.logo-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 15px;
+  color: #fff;
+}
+.logo-name {
+  font-size: 18px;
+  font-weight: 800;
+}
+.card-subtitle {
+  font-size: 12px;
+  color: var(--muted);
+  margin-bottom: 28px;
+  margin-left: 46px;
+}
+
+/* Steps */
+.steps {
+  display: flex;
+  gap: 0;
+  margin-bottom: 28px;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+.step-tab {
+  flex: 1;
+  padding: 9px 0;
+  text-align: center;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--muted);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.15s;
+}
+.step-tab.active {
+  background: var(--accent);
+  color: #fff;
+}
+.step-tab.done {
+  background: rgba(34, 197, 94, 0.15);
+  color: var(--green);
+}
+
+/* Pages */
+.step-page {
+  display: none;
+}
+.step-page.active {
+  display: block;
+}
+
+/* Form */
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.form-group {
+  margin-bottom: 14px;
+}
+label {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--muted);
+  margin-bottom: 5px;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+}
+.hint-text {
+  font-size: 10px;
+  color: var(--muted);
+  margin-top: 3px;
+}
+input,
+select {
+  width: 100%;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  font-size: 13px;
+  padding: 10px 12px;
+  outline: none;
+  transition: border-color 0.15s;
+  font-family: inherit;
+}
+input:focus,
+select:focus {
+  border-color: var(--accent);
+}
+input.invalid {
+  border-color: var(--red);
+}
+input.valid {
+  border-color: var(--green);
+}
+select option {
+  background: #1a1d2e;
+}
+
+/* Preferences grid */
+.prefs-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+.pref-item {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 8px;
+  text-align: center;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  transition: all 0.15s;
+  user-select: none;
+}
+.pref-item:hover {
+  border-color: var(--accent);
+}
+.pref-item.selected {
+  background: rgba(91, 104, 255, 0.15);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.pref-icon {
+  font-size: 18px;
+  display: block;
+  margin-bottom: 4px;
+}
+
+/* Password strength */
+.pw-strength {
+  height: 4px;
+  border-radius: 2px;
+  background: var(--border);
+  margin-top: 6px;
+  overflow: hidden;
+}
+.pw-bar {
+  height: 100%;
+  width: 0;
+  transition: all 0.3s;
+  border-radius: 2px;
+}
+
+/* Buttons */
+.btn-row {
+  display: flex;
+  gap: 10px;
+  margin-top: 4px;
+}
+.btn {
+  flex: 1;
+  padding: 11px;
+  border-radius: 8px;
+  border: none;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s;
+  font-family: inherit;
+}
+.btn-primary {
+  background: var(--accent);
+  color: #fff;
+}
+.btn-primary:hover {
+  filter: brightness(1.1);
+}
+.btn-ghost {
+  background: transparent;
+  color: var(--muted);
+  border: 1px solid var(--border);
+}
+.btn-ghost:hover {
+  background: var(--card);
+  color: var(--text);
+}
+
+.err-msg {
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: 8px;
+  padding: 10px 13px;
+  font-size: 12px;
+  color: var(--red);
+  margin-bottom: 14px;
+  display: none;
+}
+
+.footer-link {
+  margin-top: 20px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--muted);
+}
+.footer-link a {
+  color: var(--accent);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.spinner {
+  display: inline-block;
+  width: 13px;
+  height: 13px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+  margin-right: 6px;
+  vertical-align: middle;
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Success */
+.success-screen {
+  display: none;
+  text-align: center;
+  padding: 20px 0;
+}
+.success-icon {
+  font-size: 56px;
+  margin-bottom: 16px;
+}
+.success-title {
+  font-size: 20px;
+  font-weight: 800;
+  margin-bottom: 8px;
+}
+.success-sub {
+  font-size: 13px;
+  color: var(--muted);
+  margin-bottom: 24px;
+}

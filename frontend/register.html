@@ -1,400 +1,194 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-<meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-<meta name="robots" content="noindex,nofollow,noarchive,nosnippet,noimageindex,nocache,max-snippet:0,max-image-preview:none,max-video-preview:-1">
-<title>MABlytic — Create Account</title>
-<link rel="manifest" href="manifest.json"/>
-<meta name="theme-color" content="#0d1017"/>
-<style>
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-:root{
-  --bg:#0d1017;--card:#1b1f2e;--border:#272d45;
-  --text:#e4e6f0;--muted:#6070a0;--accent:#5b68ff;
-  --green:#22c55e;--red:#ef4444;
-}
-body{
-  font-family:'Inter',system-ui,sans-serif;
-  background:var(--bg);color:var(--text);
-  min-height:100vh;display:flex;
-  flex-direction:column;align-items:center;justify-content:center;padding:24px;
-}
-body::before{
-  content:'';position:fixed;inset:0;
-  background:radial-gradient(ellipse at 20% 30%,rgba(91,104,255,.07) 0%,transparent 60%),
-             radial-gradient(ellipse at 80% 70%,rgba(34,197,94,.05) 0%,transparent 60%);
-  pointer-events:none;
-}
-
-.card{
-  background:var(--card);border:1px solid var(--border);
-  border-radius:20px;padding:36px;
-  width:100%;max-width:480px;
-  box-shadow:0 24px 64px rgba(0,0,0,.4);
-}
-
-.logo{display:flex;align-items:center;gap:10px;margin-bottom:6px}
-.logo-icon{
-  width:36px;height:36px;border-radius:10px;
-  background:var(--accent);display:flex;align-items:center;justify-content:center;
-  font-weight:800;font-size:15px;color:#fff;
-}
-.logo-name{font-size:18px;font-weight:800}
-.card-subtitle{font-size:12px;color:var(--muted);margin-bottom:28px;margin-left:46px}
-
-/* Steps */
-.steps{display:flex;gap:0;margin-bottom:28px;border-radius:8px;overflow:hidden;border:1px solid var(--border)}
-.step-tab{
-  flex:1;padding:9px 0;text-align:center;
-  font-size:11.5px;font-weight:600;color:var(--muted);
-  background:transparent;border:none;cursor:pointer;
-  font-family:inherit;transition:all .15s;
-}
-.step-tab.active{background:var(--accent);color:#fff}
-.step-tab.done{background:rgba(34,197,94,.15);color:var(--green)}
-
-/* Pages */
-.step-page{display:none}
-.step-page.active{display:block}
-
-/* Form */
-.form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-.form-group{margin-bottom:14px}
-label{
-  display:block;font-size:11px;font-weight:700;
-  color:var(--muted);margin-bottom:5px;
-  text-transform:uppercase;letter-spacing:.07em;
-}
-.hint-text{font-size:10px;color:var(--muted);margin-top:3px}
-input,select{
-  width:100%;background:var(--bg);
-  border:1px solid var(--border);border-radius:8px;
-  color:var(--text);font-size:13px;padding:10px 12px;
-  outline:none;transition:border-color .15s;font-family:inherit;
-}
-input:focus,select:focus{border-color:var(--accent)}
-input.invalid{border-color:var(--red)}
-input.valid{border-color:var(--green)}
-select option{background:#1a1d2e}
-
-/* Preferences grid */
-.prefs-grid{
-  display:grid;grid-template-columns:repeat(3,1fr);gap:8px;
-}
-.pref-item{
-  border:1px solid var(--border);border-radius:8px;
-  padding:10px 8px;text-align:center;cursor:pointer;
-  font-size:12px;font-weight:600;transition:all .15s;
-  user-select:none;
-}
-.pref-item:hover{border-color:var(--accent)}
-.pref-item.selected{
-  background:rgba(91,104,255,.15);
-  border-color:var(--accent);color:var(--accent);
-}
-.pref-icon{font-size:18px;display:block;margin-bottom:4px}
-
-/* Password strength */
-.pw-strength{height:4px;border-radius:2px;background:var(--border);
-  margin-top:6px;overflow:hidden}
-.pw-bar{height:100%;width:0;transition:all .3s;border-radius:2px}
-
-/* Buttons */
-.btn-row{display:flex;gap:10px;margin-top:4px}
-.btn{
-  flex:1;padding:11px;border-radius:8px;border:none;
-  font-size:13px;font-weight:700;cursor:pointer;
-  transition:all .15s;font-family:inherit;
-}
-.btn-primary{background:var(--accent);color:#fff}
-.btn-primary:hover{filter:brightness(1.1)}
-.btn-ghost{background:transparent;color:var(--muted);border:1px solid var(--border)}
-.btn-ghost:hover{background:var(--card);color:var(--text)}
-
-.err-msg{
-  background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);
-  border-radius:8px;padding:10px 13px;font-size:12px;color:var(--red);
-  margin-bottom:14px;display:none;
-}
-
-.footer-link{margin-top:20px;text-align:center;font-size:12px;color:var(--muted)}
-.footer-link a{color:var(--accent);text-decoration:none;font-weight:600}
-
-.spinner{display:inline-block;width:13px;height:13px;
-  border:2px solid rgba(255,255,255,.3);border-top-color:#fff;
-  border-radius:50%;animation:spin .6s linear infinite;
-  margin-right:6px;vertical-align:middle}
-@keyframes spin{to{transform:rotate(360deg)}}
-
-/* Success */
-.success-screen{display:none;text-align:center;padding:20px 0}
-.success-icon{font-size:56px;margin-bottom:16px}
-.success-title{font-size:20px;font-weight:800;margin-bottom:8px}
-.success-sub{font-size:13px;color:var(--muted);margin-bottom:24px}
-</style>
-</head>
-<body>
-
-<div class="card">
-  <div class="logo">
-    <div class="logo-icon">M</div>
-    <span class="logo-name">MABlytic</span>
-  </div>
-  <div class="card-subtitle">Create your account</div>
-
-  <!-- Step tabs -->
-  <div class="steps">
-    <button class="step-tab active" id="stab-1">1 · Account</button>
-    <button class="step-tab"       id="stab-2">2 · Profile</button>
-    <button class="step-tab"       id="stab-3">3 · Interests</button>
-  </div>
-
-  <div class="err-msg" id="err"></div>
-
-  <!-- ── Step 1: Account ──────────────────────────────────────── -->
-  <div class="step-page active" id="step-1">
-    <div class="form-group">
-      <label>Username</label>
-      <input type="text" id="username" placeholder="e.g. john42"
-             oninput="validateUsername(this)"/>
-      <div class="hint-text">Letters and numbers only (no spaces or symbols)</div>
-    </div>
-    <div class="form-group">
-      <label>Password</label>
-      <input type="password" id="password" placeholder="6-128 characters"
-       oninput="validatePassword(this)"/>
-      <div class="pw-strength"><div class="pw-bar" id="pw-bar"></div></div>
-      <div class="hint-text" id="pw-hint">Use 6-128 characters, including symbols and spaces</div>
-    </div>
-    <div class="form-group">
-      <label>Confirm Password</label>
-      <input type="password" id="confirm" placeholder="Repeat your password"
-             oninput="validateConfirm(this)"/>
-    </div>
-    <div class="btn-row">
-      <button class="btn btn-primary" onclick="goStep(2)">Next →</button>
-    </div>
-  </div>
-
-  <!-- ── Step 2: Personal Info ─────────────────────────────────── -->
-  <div class="step-page" id="step-2">
-    <div class="form-row">
-      <div class="form-group">
-        <label>First Name</label>
-        <input type="text" id="first_name" placeholder="Alice"/>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+    <meta
+      name="robots"
+      content="noindex,nofollow,noarchive,nosnippet,noimageindex,nocache,max-snippet:0,max-image-preview:none,max-video-preview:-1"
+    />
+    <title>MABlytic — Create Account</title>
+    <link rel="manifest" href="manifest.json" />
+    <meta name="theme-color" content="#0d1017" />
+    <link rel="stylesheet" href="css/styles.css" />
+    <link rel="stylesheet" href="css/register.css" />
+  </head>
+  <body>
+    <div class="card">
+      <div class="logo">
+        <div class="logo-icon">M</div>
+        <span class="logo-name">MABlytic</span>
       </div>
-      <div class="form-group">
-        <label>Last Name</label>
-        <input type="text" id="last_name" placeholder="Thompson"/>
+      <div class="card-subtitle">Create your account</div>
+
+      <!-- Step tabs -->
+      <div class="steps">
+        <button class="step-tab active" id="stab-1">1 · Account</button>
+        <button class="step-tab" id="stab-2">2 · Profile</button>
+        <button class="step-tab" id="stab-3">3 · Interests</button>
       </div>
-    </div>
-    <div class="form-group">
-      <label>Email Address</label>
-      <input type="email" id="email" placeholder="alice@example.com"/>
-    </div>
-    <div class="form-row">
-      <div class="form-group">
-        <label>Age</label>
-        <input type="number" id="age" placeholder="25" min="13" max="100"/>
+
+      <div class="err-msg" id="err"></div>
+
+      <!-- ── Step 1: Account ──────────────────────────────────────── -->
+      <div class="step-page active" id="step-1">
+        <div class="form-group">
+          <label>Username</label>
+          <input
+            type="text"
+            id="username"
+            placeholder="e.g. john42"
+            oninput="validateUsername(this)"
+          />
+          <div class="hint-text">
+            Letters and numbers only (no spaces or symbols)
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Password</label>
+          <input
+            type="password"
+            id="password"
+            placeholder="6-128 characters"
+            oninput="validatePassword(this)"
+          />
+          <div class="pw-strength"><div class="pw-bar" id="pw-bar"></div></div>
+          <div class="hint-text" id="pw-hint">
+            Use 6-128 characters, including symbols and spaces
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Confirm Password</label>
+          <input
+            type="password"
+            id="confirm"
+            placeholder="Repeat your password"
+            oninput="validateConfirm(this)"
+          />
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-primary" onclick="goStep(2)">Next →</button>
+        </div>
       </div>
-      <div class="form-group">
-        <label>Gender</label>
-        <select id="gender">
-          <option value="">Select…</option>
-          <option value="male">Male</option>
-          <option value="female">Female</option>
-          <option value="non-binary">Non-binary</option>
-          <option value="prefer-not-to-say">Prefer not to say</option>
-        </select>
+
+      <!-- ── Step 2: Personal Info ─────────────────────────────────── -->
+      <div class="step-page" id="step-2">
+        <div class="form-row">
+          <div class="form-group">
+            <label>First Name</label>
+            <input type="text" id="first_name" placeholder="Alice" />
+          </div>
+          <div class="form-group">
+            <label>Last Name</label>
+            <input type="text" id="last_name" placeholder="Thompson" />
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Email Address</label>
+          <input type="email" id="email" placeholder="alice@example.com" />
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Age</label>
+            <input type="number" id="age" placeholder="25" min="13" max="100" />
+          </div>
+          <div class="form-group">
+            <label>Gender</label>
+            <select id="gender">
+              <option value="">Select…</option>
+              <option value="male">Male</option>
+              <option value="female">Female</option>
+              <option value="non-binary">Non-binary</option>
+              <option value="prefer-not-to-say">Prefer not to say</option>
+            </select>
+          </div>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-ghost" onclick="goStep(1)">← Back</button>
+          <button class="btn btn-primary" onclick="goStep(3)">Next →</button>
+        </div>
+      </div>
+
+      <!-- ── Step 3: Interests ─────────────────────────────────────── -->
+      <div class="step-page" id="step-3">
+        <div class="form-group">
+          <label
+            >Your Interests
+            <span
+              style="text-transform: none; font-weight: 400; letter-spacing: 0"
+              >(pick at least one)</span
+            ></label
+          >
+          <div class="prefs-grid" id="prefs-grid">
+            <div class="pref-item" data-val="tech" onclick="togglePref(this)">
+              <span class="pref-icon">💻</span>Tech
+            </div>
+            <div class="pref-item" data-val="gaming" onclick="togglePref(this)">
+              <span class="pref-icon">🎮</span>Gaming
+            </div>
+            <div
+              class="pref-item"
+              data-val="fitness"
+              onclick="togglePref(this)"
+            >
+              <span class="pref-icon">💪</span>Fitness
+            </div>
+            <div class="pref-item" data-val="health" onclick="togglePref(this)">
+              <span class="pref-icon">🏥</span>Health
+            </div>
+            <div class="pref-item" data-val="food" onclick="togglePref(this)">
+              <span class="pref-icon">🍕</span>Food
+            </div>
+            <div class="pref-item" data-val="travel" onclick="togglePref(this)">
+              <span class="pref-icon">✈️</span>Travel
+            </div>
+            <div class="pref-item" data-val="sports" onclick="togglePref(this)">
+              <span class="pref-icon">⚽</span>Sports
+            </div>
+            <div class="pref-item" data-val="books" onclick="togglePref(this)">
+              <span class="pref-icon">📚</span>Books
+            </div>
+            <div
+              class="pref-item"
+              data-val="education"
+              onclick="togglePref(this)"
+            >
+              <span class="pref-icon">🎓</span>Education
+            </div>
+          </div>
+        </div>
+        <div class="btn-row" style="margin-top: 18px">
+          <button class="btn btn-ghost" onclick="goStep(2)">← Back</button>
+          <button
+            class="btn btn-primary"
+            id="submit-btn"
+            onclick="doRegister()"
+          >
+            Create Account
+          </button>
+        </div>
+      </div>
+
+      <!-- Success screen -->
+      <div class="success-screen" id="success">
+        <div class="success-icon">🎉</div>
+        <div class="success-title">Welcome to MABlytic!</div>
+        <div class="success-sub">
+          Your account has been created. Redirecting to login…
+        </div>
+        <button
+          class="btn btn-primary"
+          onclick="window.location.href = 'index.html'"
+        >
+          Go to Login
+        </button>
+      </div>
+
+      <div class="footer-link">
+        Already have an account? <a href="index.html">Login</a>
       </div>
     </div>
-    <div class="btn-row">
-      <button class="btn btn-ghost" onclick="goStep(1)">← Back</button>
-      <button class="btn btn-primary" onclick="goStep(3)">Next →</button>
-    </div>
-  </div>
 
-  <!-- ── Step 3: Interests ─────────────────────────────────────── -->
-  <div class="step-page" id="step-3">
-    <div class="form-group">
-      <label>Your Interests <span style="text-transform:none;font-weight:400;letter-spacing:0">(pick at least one)</span></label>
-      <div class="prefs-grid" id="prefs-grid">
-        <div class="pref-item" data-val="tech"      onclick="togglePref(this)"><span class="pref-icon">💻</span>Tech</div>
-        <div class="pref-item" data-val="gaming"    onclick="togglePref(this)"><span class="pref-icon">🎮</span>Gaming</div>
-        <div class="pref-item" data-val="fitness"   onclick="togglePref(this)"><span class="pref-icon">💪</span>Fitness</div>
-        <div class="pref-item" data-val="health"    onclick="togglePref(this)"><span class="pref-icon">🏥</span>Health</div>
-        <div class="pref-item" data-val="food"      onclick="togglePref(this)"><span class="pref-icon">🍕</span>Food</div>
-        <div class="pref-item" data-val="travel"    onclick="togglePref(this)"><span class="pref-icon">✈️</span>Travel</div>
-        <div class="pref-item" data-val="sports"    onclick="togglePref(this)"><span class="pref-icon">⚽</span>Sports</div>
-        <div class="pref-item" data-val="books"     onclick="togglePref(this)"><span class="pref-icon">📚</span>Books</div>
-        <div class="pref-item" data-val="education" onclick="togglePref(this)"><span class="pref-icon">🎓</span>Education</div>
-      </div>
-    </div>
-    <div class="btn-row" style="margin-top:18px">
-      <button class="btn btn-ghost" onclick="goStep(2)">← Back</button>
-      <button class="btn btn-primary" id="submit-btn" onclick="doRegister()">Create Account</button>
-    </div>
-  </div>
-
-  <!-- Success screen -->
-  <div class="success-screen" id="success">
-    <div class="success-icon">🎉</div>
-    <div class="success-title">Welcome to MABlytic!</div>
-    <div class="success-sub">Your account has been created. Redirecting to login…</div>
-    <button class="btn btn-primary" onclick="window.location.href='index.html'">Go to Login</button>
-  </div>
-
-  <div class="footer-link">
-    Already have an account? <a href="index.html">Login</a>
-  </div>
-</div>
-
-<script>
-const API = (location.hostname === "localhost" || location.hostname === "127.0.0.1")
-  ? "http://127.0.0.1:8001"
-  : "https://mablytic.onrender.com";
-let currentStep = 1;
-const selectedPrefs = new Set();
-
-// ── Navigation ───────────────────────────────────────────────────────────────
-function goStep(n) {
-  if (n > currentStep) {
-    if (!validateStep(currentStep)) return;
-    document.getElementById(`stab-${currentStep}`).classList.replace("active","done");
-  }
-  document.getElementById(`step-${currentStep}`).classList.remove("active");
-  currentStep = n;
-  document.getElementById(`step-${n}`).classList.add("active");
-  document.getElementById(`stab-${n}`).classList.add("active");
-  document.getElementById("err").style.display = "none";
-}
-
-// ── Validation ───────────────────────────────────────────────────────────────
-function validateStep(n) {
-  if (n === 1) {
-    if (!validateUsername(document.getElementById("username"))) return false;
-    if (!validatePassword(document.getElementById("password"))) return false;
-    if (!validateConfirm(document.getElementById("confirm"))) return false;
-  }
-  if (n === 2) {
-    const fields = ["first_name","last_name","email","age","gender"];
-    for (const id of fields) {
-      const el = document.getElementById(id);
-      if (!el.value.trim()) { showErr("Please fill in all profile fields."); el.focus(); return false; }
-    }
-    const age = parseInt(document.getElementById("age").value);
-    if (isNaN(age) || age < 13 || age > 100) { showErr("Please enter a valid age (13–100)."); return false; }
-  }
-  return true;
-}
-
-function validateUsername(el) {
-  const v = el.value.trim();
-  const ok = /^[a-zA-Z0-9]+$/.test(v) && v.length >= 2;
-  el.classList.toggle("invalid", !ok && v.length > 0);
-  el.classList.toggle("valid",    ok);
-  return ok;
-}
-
-
-function validatePassword(el) {
-  const v = el.value;
-  const ok = v.length >= 6 && v.length <= 128;
-
-  el.classList.toggle("invalid", !ok && v.length > 0);
-  el.classList.toggle("valid", ok);
-
-  // Strength bar
-  const bar = document.getElementById("pw-bar");
-  const hint = document.getElementById("pw-hint");
-
-  if (!v) {
-    bar.style.width = "0";
-    bar.style.background = "";
-    hint.textContent = "";
-  } else if (v.length < 8) {
-    bar.style.width = "25%";
-    bar.style.background = "#ef4444";
-    hint.textContent = "Too short — need at least 12 characters";
-  } else if (v.length < 12) {
-    bar.style.width = "50%";
-    bar.style.background = "#f97316";
-    hint.textContent = "Almost there — need 12 characters";
-  } else if (v.length <= 128) {
-    bar.style.width = "100%";
-    bar.style.background = "#22c55e";
-    hint.textContent = "Length looks good ✓";
-  } else {
-    bar.style.width = "75%";
-    bar.style.background = "#f97316";
-    hint.textContent = "Maximum 128 characters";
-  }
-
-  return ok;
-}
-
-
-function validateConfirm(el) {
-  const pw = document.getElementById("password").value;
-  const ok = el.value === pw && pw.length > 0;
-  el.classList.toggle("invalid", !ok && el.value.length > 0);
-  el.classList.toggle("valid",    ok);
-  return ok;
-}
-
-// ── Preferences ──────────────────────────────────────────────────────────────
-function togglePref(el) {
-  const v = el.dataset.val;
-  if (selectedPrefs.has(v)) { selectedPrefs.delete(v); el.classList.remove("selected"); }
-  else                      { selectedPrefs.add(v);    el.classList.add("selected"); }
-}
-
-// ── Submit ───────────────────────────────────────────────────────────────────
-async function doRegister() {
-  if (selectedPrefs.size === 0) { showErr("Please select at least one interest."); return; }
-
-  const btn = document.getElementById("submit-btn");
-  btn.innerHTML = '<span class="spinner"></span>Creating…';
-  btn.disabled = true;
-  document.getElementById("err").style.display = "none";
-
-  const payload = {
-    username:    document.getElementById("username").value.trim(),
-    password:    document.getElementById("password").value,
-    first_name:  document.getElementById("first_name").value.trim(),
-    last_name:   document.getElementById("last_name").value.trim(),
-    email:       document.getElementById("email").value.trim(),
-    gender:      document.getElementById("gender").value,
-    age:         parseInt(document.getElementById("age").value),
-    preferences: [...selectedPrefs].join(","),
-  };
-
-  try {
-    const r = await fetch(`${API}/auth/register`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-    if (!r.ok) { const d = await r.json(); throw new Error(d.detail || "Registration failed."); }
-
-    // Show success
-    document.getElementById("step-3").classList.remove("active");
-    document.getElementById("success").style.display = "block";
-    document.querySelector(".footer-link").style.display = "none";
-    document.querySelector(".steps").style.display = "none";
-    setTimeout(() => window.location.href = "index.html", 3000);
-  } catch (e) {
-    showErr(e.message);
-    btn.innerHTML = "Create Account";
-    btn.disabled = false;
-  }
-}
-
-function showErr(msg) {
-  const el = document.getElementById("err");
-  el.textContent = msg; el.style.display = "block";
-}
-</script>
-</body>
+    <script src="js/register.js"></script>
+  </body>
 </html>
