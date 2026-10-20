@@ -423,22 +423,29 @@ const AD_CACHE_KEY = "mablytic_ad_cache";
 
 // ── Auth guard ────────────────────────────────────────────
 // Support both old key (mablytic_session) and new key for backwards compat
+
 const session = JSON.parse(
-  localStorage.getItem(SESSION_KEY) ||
-  localStorage.getItem("mablytic_session") ||
-  "null"
+  localStorage.getItem(SESSION_KEY) || "null"
 );
-if (!session) { window.location.href = "/"; }
-// Migrate old key
-if (localStorage.getItem("mablytic_session") && !localStorage.getItem(SESSION_KEY)) {
-  localStorage.setItem(SESSION_KEY, localStorage.getItem("mablytic_session"));
+
+// Require a valid session with a user ID and access token.
+if (
+  !session ||
+  !session.access_token ||
+  !Number.isInteger(Number(session.id)) ||
+  Number(session.id) <= 0
+) {
+  localStorage.removeItem(SESSION_KEY);
+  window.location.href = "/";
+  throw new Error("Valid authentication session required.");
 }
-const userId = Number.isFinite(Number(session?.id)) && Number(session?.id) > 0
-  ? Number(session?.id)
-  : 1;
+
+const userId = Number(session.id);
+
 
 // ── Ad state ──────────────────────────────────────────────
 const adState = { 1: null, 2: null };
+const clickInProgress = { 1: false, 2: false };
 let isOnline = navigator.onLine;
 
 // ── Splash ────────────────────────────────────────────────
@@ -515,20 +522,51 @@ function getCachedAd(slot) {
 
 // ── Fetch ad — network first, cache fallback ──────────────
 async function fetchAdWithFallback(slot) {
+  
   const tryFetch = async (id) => {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 12000);
-    const r = await fetch(`${API}/serve-ad/${id}`, { signal: controller.signal });
-    clearTimeout(timeoutId);
-    if (!r.ok) {
-      const detail = await r.json().catch(() => ({}));
-      throw new Error(detail.detail || `API error (${r.status})`);
+
+    try {
+      // Exclude the ad in the other slot and the current slot's previous ad.
+      const excludedIds = [
+        adState[slot]?.ad_id,
+        adState[slot === 1 ? 2 : 1]?.ad_id,
+      ].filter(Number.isInteger);
+
+      const params = new URLSearchParams();
+      if (excludedIds.length) {
+        params.set("exclude_ids", [...new Set(excludedIds)].join(","));
+      }
+
+      const url = `${API}/serve-ad/${id}${params.size ? `?${params}` : ""}`;
+
+      const r = await fetch(url, {
+        signal: controller.signal,
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
+      });
+
+      if (r.status === 401) {
+        logout();
+        throw new Error("Session expired");
+      }
+
+      if (!r.ok) {
+        throw new Error(`Ad request failed: ${r.status}`);
+      }
+
+      const ad = await r.json();
+      if (!isValidAd(ad)) throw new Error("Malformed ad payload");
+
+      cacheAd(slot, ad);
+      return { ad, fromCache: false };
+    } finally {
+      clearTimeout(timeoutId);
     }
-    const ad = await r.json();
-    if (!isValidAd(ad)) throw new Error("Malformed ad payload");
-    cacheAd(slot, ad);
-    return { ad, fromCache: false };
   };
+
 
   if (isOnline) {
     try {
@@ -611,27 +649,59 @@ async function loadAd(slot) {
 }
 
 // ── Log interaction ───────────────────────────────────────
+
+
 async function logInteraction(adId, type) {
   try {
-    await fetch(`${API}/interactions/`, {
+    const response = await fetch(`${API}/interactions/`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ user_id: userId, ad_id: adId, interaction_type: type }),
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${session.access_token}`,
+      },
+      body: JSON.stringify({
+        user_id: userId,
+        ad_id: adId,
+        interaction_type: type,
+      }),
     });
-  } catch {}
-}
 
-async function ensureNotificationPermission() {
-  if (!('Notification' in window)) return false;
-  if (Notification.permission === 'granted') return true;
-  if (Notification.permission !== 'default') return false;
+    if (response.status === 401) {
+      logout();
+      return false;
+    }
 
-  try {
-    return await Notification.requestPermission() === 'granted';
-  } catch {
+    if (!response.ok) {
+      console.error(
+        "Failed to log interaction:",
+        response.status,
+        await response.text()
+      );
+      return false;
+    }
+
+    return true;
+  } catch (error) {
+    console.error("Interaction logging failed:", error);
     return false;
   }
 }
+
+
+async function ensureNotificationPermission() {
+  if (!("Notification" in window)) return false;
+
+  if (Notification.permission === "granted") return true;
+  if (Notification.permission !== "default") return false;
+
+  try {
+    return (await Notification.requestPermission()) === "granted";
+  } catch (error) {
+    console.error("Error requesting notification permission:", error);
+    return false;
+  }
+}
+
 
 async function showPwaNotification(title, options) {
   if (!('serviceWorker' in navigator)) return false;
@@ -667,13 +737,29 @@ async function notifyAdClick(ad) {
 }
 
 // ── Click handlers ────────────────────────────────────────
+
+
 async function clickAd(slot) {
+  if (clickInProgress[slot]) return;
+
   const st = adState[slot];
   if (!st) return;
-  await logInteraction(st.ad_id, "click");
-  await notifyAdClick(st);
-  loadAd(slot);
+
+  clickInProgress[slot] = true;
+
+  try {
+    const logged = await logInteraction(st.ad_id, "click");
+
+    if (!logged) return;
+
+    await notifyAdClick(st);
+    await loadAd(slot);
+  } finally {
+    clickInProgress[slot] = false;
+  }
 }
+
+
 
 // ── Push notifications ────────────────────────────────────
 let notifTimer = null;

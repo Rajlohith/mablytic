@@ -162,10 +162,10 @@ select option{background:#1a1d2e}
     </div>
     <div class="form-group">
       <label>Password</label>
-      <input type="password" id="password" placeholder="6–8 alphanumeric characters"
-             oninput="validatePassword(this)"/>
+      <input type="password" id="password" placeholder="6-128 characters"
+       oninput="validatePassword(this)"/>
       <div class="pw-strength"><div class="pw-bar" id="pw-bar"></div></div>
-      <div class="hint-text" id="pw-hint">6–8 characters, letters and numbers only</div>
+      <div class="hint-text" id="pw-hint">Use 6-128 characters, including symbols and spaces</div>
     </div>
     <div class="form-group">
       <label>Confirm Password</label>
@@ -297,21 +297,43 @@ function validateUsername(el) {
   return ok;
 }
 
+
 function validatePassword(el) {
   const v = el.value;
-  const ok = /^[a-zA-Z0-9]{6,8}$/.test(v);
+  const ok = v.length >= 6 && v.length <= 128;
+
   el.classList.toggle("invalid", !ok && v.length > 0);
-  el.classList.toggle("valid",    ok);
+  el.classList.toggle("valid", ok);
+
   // Strength bar
   const bar = document.getElementById("pw-bar");
   const hint = document.getElementById("pw-hint");
-  if (!v)          { bar.style.width="0"; bar.style.background=""; }
-  else if (v.length < 4) { bar.style.width="25%"; bar.style.background="#ef4444"; hint.textContent="Too short"; }
-  else if (v.length < 6) { bar.style.width="50%"; bar.style.background="#f97316"; hint.textContent="Almost there — need 6 characters"; }
-  else if (ok)           { bar.style.width="100%"; bar.style.background="#22c55e"; hint.textContent="Looks good ✓"; }
-  else                   { bar.style.width="75%";  bar.style.background="#f97316"; hint.textContent="Max 8 chars, letters & numbers only"; }
+
+  if (!v) {
+    bar.style.width = "0";
+    bar.style.background = "";
+    hint.textContent = "";
+  } else if (v.length < 8) {
+    bar.style.width = "25%";
+    bar.style.background = "#ef4444";
+    hint.textContent = "Too short — need at least 12 characters";
+  } else if (v.length < 12) {
+    bar.style.width = "50%";
+    bar.style.background = "#f97316";
+    hint.textContent = "Almost there — need 12 characters";
+  } else if (v.length <= 128) {
+    bar.style.width = "100%";
+    bar.style.background = "#22c55e";
+    hint.textContent = "Length looks good ✓";
+  } else {
+    bar.style.width = "75%";
+    bar.style.background = "#f97316";
+    hint.textContent = "Maximum 128 characters";
+  }
+
   return ok;
 }
+
 
 function validateConfirm(el) {
   const pw = document.getElementById("password").value;

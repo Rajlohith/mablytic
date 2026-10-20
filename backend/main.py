@@ -1,11 +1,16 @@
-import hashlib
 import random
 import re
 
 import models
 import schemas
 from ad_serving import ThompsonSamplingBandit, user_preference_categories
-from auth import create_access_token, verify_and_upgrade_password
+from auth import (
+    create_access_token,
+    get_current_user,
+    hash_password,
+    require_admin,
+    verify_and_upgrade_password,
+)
 from database import engine, get_db
 from fastapi import Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -66,22 +71,16 @@ def health():
     return {"status": "ok", "service": "MABlytic API"}
 
 
-# ── Password helpers ──────────────────────────────────────────────────────────
-_SALT = "mablytic_salt_v1"
-_OLD_SALT = "adwise_salt_v1"  # kept only so pre-existing users can still log in
-
-
-def hash_password(password: str, salt: str = _SALT) -> str:
-    return hashlib.sha256(f"{salt}{password}".encode()).hexdigest()
-
-
-def verify_password(plain: str, stored: str) -> str | None:
-    """Returns the salt that matched the stored hash, or None if invalid."""
-    if hash_password(plain, _SALT) == stored:
-        return _SALT
-    if hash_password(plain, _OLD_SALT) == stored:
-        return _OLD_SALT
-    return None
+def require_self_or_admin(
+    user_id: int,
+    current_user: models.User = Depends(get_current_user),
+) -> models.User:
+    if current_user.id != user_id and not current_user.is_admin:
+        raise HTTPException(
+            status_code=403,
+            detail="You can only access your own account.",
+        )
+    return current_user
 
 
 # ── Validation ────────────────────────────────────────────────────────────────
@@ -93,9 +92,10 @@ def validate_username(username: str):
 
 
 def validate_password(password: str):
-    if not re.match(r"^[a-zA-Z0-9]{6,8}$", password):
+    if len(password) < 6 or len(password) > 128:
         raise HTTPException(
-            status_code=400, detail="Password must be 6-8 alphanumeric characters."
+            status_code=400,
+            detail="Password must be between 6 and 128 characters.",
         )
 
 
@@ -176,7 +176,17 @@ def login(creds: schemas.UserLogin, db: Session = Depends(get_db)):
 
 
 @app.get("/auth/profile/{user_id}", response_model=schemas.UserResponse, tags=["Auth"])
-def get_profile(user_id: int, db: Session = Depends(get_db)):
+def get_profile(
+    user_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    if current_user.id != user_id and not current_user.is_admin:
+        raise HTTPException(
+            status_code=403,
+            detail="You can only access your own account.",
+        )
+
     u = db.query(models.User).filter(models.User.id == user_id).first()
     if not u:
         raise HTTPException(status_code=404, detail="User not found.")
@@ -188,26 +198,34 @@ def get_profile(user_id: int, db: Session = Depends(get_db)):
 # ═══════════════════════════════════════════════════════════════════════════════
 
 
-@app.post("/users/", response_model=schemas.UserResponse, tags=["Users"])
-def create_user_legacy(user: schemas.UserCreate, db: Session = Depends(get_db)):
-    db_user = models.User(
-        username=f"user_{random.randint(10000, 99999)}",
-        password_hash=hash_password("Pass12"),
-        preferences=user.preferences,
+@app.post("/users/", tags=["Users"], status_code=410)
+def create_user_legacy():
+    raise HTTPException(
+        status_code=410,
+        detail="This endpoint is retired. Use /auth/register instead.",
     )
-    db.add(db_user)
-    db.commit()
-    db.refresh(db_user)
-    return db_user
 
 
 @app.get("/users/", response_model=list[schemas.UserResponse], tags=["Users"])
-def list_users(db: Session = Depends(get_db)):
+def list_users(
+    db: Session = Depends(get_db),
+    admin: models.User = Depends(require_admin),
+):
     return db.query(models.User).all()
 
 
 @app.get("/users/{user_id}", response_model=schemas.UserResponse, tags=["Users"])
-def get_user(user_id: int, db: Session = Depends(get_db)):
+def get_user(
+    user_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    if current_user.id != user_id and not current_user.is_admin:
+        raise HTTPException(
+            status_code=403,
+            detail="You can only access your own account.",
+        )
+
     u = db.query(models.User).filter(models.User.id == user_id).first()
     if not u:
         raise HTTPException(status_code=404, detail="User not found.")
@@ -215,13 +233,20 @@ def get_user(user_id: int, db: Session = Depends(get_db)):
 
 
 @app.delete("/users/{user_id}", tags=["Users"])
-def delete_user(user_id: int, db: Session = Depends(get_db)):
+def delete_user(
+    user_id: int,
+    db: Session = Depends(get_db),
+    admin: models.User = Depends(require_admin),
+):
     u = db.query(models.User).filter(models.User.id == user_id).first()
     if not u:
         raise HTTPException(status_code=404, detail="User not found.")
+
     db.query(models.Interaction).filter(models.Interaction.user_id == user_id).delete()
+
     db.delete(u)
     db.commit()
+
     return {"message": f"User {user_id} deleted."}
 
 
@@ -231,7 +256,11 @@ def delete_user(user_id: int, db: Session = Depends(get_db)):
 
 
 @app.post("/ads/", response_model=schemas.AdResponse, tags=["Ads"])
-def create_ad(ad: schemas.AdCreate, db: Session = Depends(get_db)):
+def create_ad(
+    ad: schemas.AdCreate,
+    db: Session = Depends(get_db),
+    admin: models.User = Depends(require_admin),
+):
     if ad.variant not in ("A", "B"):
         raise HTTPException(status_code=400, detail="Variant must be 'A' or 'B'.")
     db_ad = models.Ad(**ad.model_dump())
@@ -255,13 +284,20 @@ def get_ad(ad_id: int, db: Session = Depends(get_db)):
 
 
 @app.delete("/ads/{ad_id}", tags=["Ads"])
-def delete_ad(ad_id: int, db: Session = Depends(get_db)):
+def delete_ad(
+    ad_id: int,
+    db: Session = Depends(get_db),
+    admin: models.User = Depends(require_admin),
+):
     ad = db.query(models.Ad).filter(models.Ad.id == ad_id).first()
     if not ad:
         raise HTTPException(status_code=404, detail="Ad not found.")
+
     db.query(models.Interaction).filter(models.Interaction.ad_id == ad_id).delete()
+
     db.delete(ad)
     db.commit()
+
     return {"message": f"Ad {ad_id} deleted."}
 
 
@@ -270,26 +306,66 @@ def delete_ad(ad_id: int, db: Session = Depends(get_db)):
 # ═══════════════════════════════════════════════════════════════════════════════
 
 
-@app.get("/serve-ad/{user_id}", response_model=schemas.AdResponse, tags=["Ad Serving"])
-def serve_ad(user_id: int, db: Session = Depends(get_db)):
-    """Serve the ad most likely to convert for this user using a Multi-Armed Bandit model."""
+@app.get(
+    "/serve-ad/{user_id}",
+    response_model=schemas.AdResponse,
+    tags=["Ad Serving"],
+)
+def serve_ad(
+    user_id: int,
+    exclude_ids: str = "",
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    """Serve an ad using Thompson Sampling, avoiding displayed ads when possible."""
+
+    if not current_user.is_admin and user_id != current_user.id:
+        raise HTTPException(
+            status_code=403,
+            detail="You can only request recommendations for your own account.",
+        )
+
     user = db.query(models.User).filter(models.User.id == user_id).first()
+
     if not user:
         raise HTTPException(status_code=404, detail="User not found.")
 
     ads = db.query(models.Ad).all()
+
     if not ads:
         raise HTTPException(status_code=404, detail="No ads in database.")
 
+    # Parse and validate IDs of ads already displayed in the feed.
+    excluded_ids = set()
+    try:
+        if exclude_ids:
+            excluded_ids = {
+                int(value.strip()) for value in exclude_ids.split(",") if value.strip()
+            }
+            if any(ad_id <= 0 for ad_id in excluded_ids):
+                raise ValueError
+    except ValueError:
+        raise HTTPException(
+            status_code=422,
+            detail="exclude_ids must contain positive integer IDs.",
+        )
+
     prefs = user_preference_categories(user)
-    bandit = ThompsonSamplingBandit(db)
 
+    # Keep preference-based filtering as the first priority.
     if prefs:
-        matching_ads = [ad for ad in ads if ad.category.lower() in prefs]
+        matching_ads = [ad for ad in ads if (ad.category or "").lower() in prefs]
         if matching_ads:
-            return bandit.choose(matching_ads)
+            ads = matching_ads
 
-    return bandit.choose(ads)
+    # Prefer ads not already displayed in the current feed.
+    unseen_ads = [ad for ad in ads if ad.id not in excluded_ids]
+
+    # If every eligible ad is excluded, allow the full eligible pool again.
+    candidates = unseen_ads if unseen_ads else ads
+
+    bandit = ThompsonSamplingBandit(db)
+    return bandit.choose(candidates)
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -298,16 +374,48 @@ def serve_ad(user_id: int, db: Session = Depends(get_db)):
 
 
 @app.post(
-    "/interactions/", response_model=schemas.InteractionResponse, tags=["Interactions"]
+    "/interactions/",
+    response_model=schemas.InteractionResponse,
+    tags=["Interactions"],
 )
 def log_interaction(
-    interaction: schemas.InteractionCreate, db: Session = Depends(get_db)
+    interaction: schemas.InteractionCreate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
 ):
-    if interaction.interaction_type.lower() not in ("view", "click"):
+    # Ensure the referenced user exists.
+    user = db.query(models.User).filter(models.User.id == interaction.user_id).first()
+
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found.")
+
+    interaction_type = interaction.interaction_type.lower()
+
+    if interaction_type not in ("view", "click"):
         raise HTTPException(
-            status_code=400, detail="interaction_type must be 'view' or 'click'."
+            status_code=400,
+            detail="interaction_type must be 'view' or 'click'.",
         )
-    db_i = models.Interaction(**interaction.model_dump())
+
+    # Regular users can only record interactions for themselves.
+    if not current_user.is_admin and interaction.user_id != current_user.id:
+        raise HTTPException(
+            status_code=403,
+            detail="You can only record interactions for your own account.",
+        )
+
+    # Ensure the referenced ad exists.
+    ad = db.query(models.Ad).filter(models.Ad.id == interaction.ad_id).first()
+
+    if not ad:
+        raise HTTPException(status_code=404, detail="Ad not found.")
+
+    db_i = models.Interaction(
+        user_id=interaction.user_id,
+        ad_id=interaction.ad_id,
+        interaction_type=interaction_type,
+    )
+
     db.add(db_i)
     db.commit()
     db.refresh(db_i)
@@ -319,7 +427,14 @@ def log_interaction(
     response_model=list[schemas.InteractionResponse],
     tags=["Interactions"],
 )
-def list_interactions(limit: int = 100, db: Session = Depends(get_db)):
+def list_interactions(
+    limit: int = 100,
+    db: Session = Depends(get_db),
+    admin: models.User = Depends(require_admin),
+):
+    # Keep the requested limit within a reasonable range.
+    limit = max(1, min(limit, 500))
+
     return (
         db.query(models.Interaction)
         .order_by(desc(models.Interaction.id))
@@ -334,16 +449,22 @@ def list_interactions(limit: int = 100, db: Session = Depends(get_db)):
 
 
 @app.post("/clear-database/", tags=["Database"])
-def clear_database(db: Session = Depends(get_db)):
+def clear_database(
+    db: Session = Depends(get_db),
+    admin: models.User = Depends(require_admin),
+):
     try:
         db.query(models.Interaction).delete()
         db.query(models.Ad).delete()
         db.query(models.User).delete()
         db.commit()
         return {"message": "All data cleared successfully."}
-    except Exception as e:
+    except Exception:
         db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to clear database.",
+        )
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -352,7 +473,10 @@ def clear_database(db: Session = Depends(get_db)):
 
 
 @app.get("/admin/dashboard-stats", tags=["Admin"])
-def get_dashboard_stats(db: Session = Depends(get_db)):
+def get_dashboard_stats(
+    db: Session = Depends(get_db),
+    admin: models.User = Depends(require_admin),
+):
     total_users = db.query(models.User).filter(models.User.is_admin == False).count()
     total_admins = db.query(models.User).filter(models.User.is_admin == True).count()
     total_ads = db.query(models.Ad).count()
@@ -378,7 +502,10 @@ def get_dashboard_stats(db: Session = Depends(get_db)):
 
 
 @app.get("/admin/analytics", tags=["Admin"])
-def get_ad_analytics(db: Session = Depends(get_db)):
+def get_ad_analytics(
+    db: Session = Depends(get_db),
+    admin: models.User = Depends(require_admin),
+):
     ads = db.query(models.Ad).all()
     result = []
     for ad in ads:
@@ -414,17 +541,27 @@ def get_ad_analytics(db: Session = Depends(get_db)):
 
 
 @app.get("/admin/users", response_model=list[schemas.UserResponse], tags=["Admin"])
-def get_all_users(db: Session = Depends(get_db)):
+def get_all_users(
+    db: Session = Depends(get_db),
+    admin: models.User = Depends(require_admin),
+):
     return db.query(models.User).order_by(models.User.id).all()
 
 
 @app.get("/admin/ads", response_model=list[schemas.AdResponse], tags=["Admin"])
-def get_all_ads(db: Session = Depends(get_db)):
+def get_all_ads(
+    db: Session = Depends(get_db),
+    admin: models.User = Depends(require_admin),
+):
     return db.query(models.Ad).order_by(models.Ad.id).all()
 
 
 @app.get("/admin/analytics/user/{user_id}", tags=["Admin"])
-def get_user_analytics(user_id: int, db: Session = Depends(get_db)):
+def get_user_analytics(
+    user_id: int,
+    db: Session = Depends(get_db),
+    admin: models.User = Depends(require_admin),
+):
     u = db.query(models.User).filter(models.User.id == user_id).first()
     if not u:
         raise HTTPException(status_code=404, detail="User not found.")
@@ -448,7 +585,11 @@ def get_user_analytics(user_id: int, db: Session = Depends(get_db)):
 
 
 @app.get("/admin/analytics/ad/{ad_id}", tags=["Admin"])
-def get_ad_analytics_by_id(ad_id: int, db: Session = Depends(get_db)):
+def get_ad_analytics_by_id(
+    ad_id: int,
+    db: Session = Depends(get_db),
+    admin: models.User = Depends(require_admin),
+):
     ad = db.query(models.Ad).filter(models.Ad.id == ad_id).first()
     if not ad:
         raise HTTPException(status_code=404, detail="Ad not found.")
@@ -470,7 +611,11 @@ def get_ad_analytics_by_id(ad_id: int, db: Session = Depends(get_db)):
 
 
 @app.get("/admin/history", tags=["Admin"])
-def get_history(limit: int = 50, db: Session = Depends(get_db)):
+def get_history(
+    limit: int = 50,
+    db: Session = Depends(get_db),
+    admin: models.User = Depends(require_admin),
+):
     logs = (
         db.query(models.Interaction)
         .order_by(desc(models.Interaction.id))
@@ -499,7 +644,11 @@ def get_history(limit: int = 50, db: Session = Depends(get_db)):
 
 
 @app.post("/admin/users", tags=["Admin"])
-def admin_create_user(user_in: schemas.UserCreate, db: Session = Depends(get_db)):
+def admin_create_user(
+    user_in: schemas.UserCreate,
+    db: Session = Depends(get_db),
+    admin: models.User = Depends(require_admin),
+):
     new_user = models.User(
         username=f"persona_{random.randint(10000, 99999)}",
         password_hash=hash_password("Pass12"),

@@ -1,3 +1,4 @@
+import hmac
 import os
 from datetime import UTC, datetime, timedelta
 
@@ -69,7 +70,17 @@ def get_current_user(
             algorithms=[JWT_ALGORITHM],
             options={"require": ["sub", "exp", "iat"]},
         )
-        user_id = int(payload["sub"])
+
+        subject = payload["sub"]
+
+        if not isinstance(subject, str) or not subject.isdigit():
+            raise unauthorized
+
+        user_id = int(subject)
+
+        if user_id <= 0:
+            raise unauthorized
+
     except (jwt.InvalidTokenError, ValueError, TypeError, KeyError):
         raise unauthorized
 
@@ -124,7 +135,7 @@ def verify_and_upgrade_password(
     for salt in LEGACY_SALTS:
         candidate = hashlib.sha256(f"{salt}{password}".encode()).hexdigest()
 
-        if __import__("hmac").compare_digest(candidate, stored_hash):
+        if hmac.compare_digest(candidate, stored_hash):
             return True, hash_password(password)
 
     return False, None

@@ -550,16 +550,26 @@ const API = (location.hostname === "localhost" || location.hostname === "127.0.0
   : "https://mablytic.onrender.com";
 
 // ── Auth guard ────────────────────────────────────────────
-const session = JSON.parse(localStorage.getItem("mablytic_session") || localStorage.getItem("mablytic_session") || "null");
-if (!session || !session.is_admin) {
+const session = JSON.parse(
+  localStorage.getItem("mablytic_session") || "null"
+);
+
+if (!session || !session.is_admin || !session.access_token) {
+  localStorage.removeItem("mablytic_session");
   window.location.href = "/";
+} else {
+  document.getElementById("admin-name").textContent =
+    session.first_name || "Admin";
+
+  document.getElementById("admin-username").textContent =
+    "@" + (session.username || "admin");
+
+  document.getElementById("admin-av").textContent =
+    (session.first_name?.[0] || "A").toUpperCase();
 }
-document.getElementById("admin-name").textContent     = session?.first_name || "Admin";
-document.getElementById("admin-username").textContent = "@" + (session?.username || "admin");
-document.getElementById("admin-av").textContent       = (session?.first_name?.[0] || "A").toUpperCase();
 
 function logout() {
-  localStorage.removeItem("mablytic_session"); localStorage.removeItem("mablytic_session");
+  localStorage.removeItem("mablytic_session");
   window.location.href = "/";
 }
 
@@ -589,10 +599,30 @@ function toast(msg, type="ok") {
 }
 
 // ── Backend status ────────────────────────────────────────
+
 async function checkBackend() {
-  const dot=document.getElementById("status-dot"), lbl=document.getElementById("status-lbl");
-  try { await fetch(`${API}/admin/dashboard-stats`); dot.className="dot online"; lbl.textContent="Backend Active"; }
-  catch { dot.className="dot offline"; lbl.textContent="Backend Offline"; }
+  const dot = document.getElementById("status-dot");
+  const lbl = document.getElementById("status-lbl");
+
+  try {
+    await apiFetch("/admin/dashboard-stats");
+
+    dot.className = "dot online";
+    lbl.textContent = "Backend Active";
+  } catch (error) {
+    dot.className = "dot offline";
+
+    if (
+      error.message.includes("401") ||
+      error.message.includes("403") ||
+      error.message.includes("Authentication") ||
+      error.message.includes("Administrator")
+    ) {
+      lbl.textContent = "Backend Active · Auth Required";
+    } else {
+      lbl.textContent = "Backend Error";
+    }
+  }
 }
 
 // ── Navigation ────────────────────────────────────────────
@@ -628,18 +658,45 @@ document.getElementById("clear-btn").addEventListener("click", confirmClear);
 async function confirmClear() {
   if(!confirm("⚠️ Delete ALL users, ads, and interactions? Cannot be undone.")) return;
   try {
-    const r = await fetch(`${API}/clear-database/`,{method:"POST"});
+    const r = await apiFetch("/clear-database/", {
+      method: "POST",
+    });
     if(!r.ok) throw new Error((await r.json()).detail);
     toast("✓ Database cleared","ok"); loadHome();
   } catch(e) { toast(`✗ ${e.message}`,"err"); }
 }
 
 // ── Helpers ───────────────────────────────────────────────
-async function apiFetch(path, opts={}) {
-  const r = await fetch(`${API}${path}`, opts);
-  if(!r.ok) { const d=await r.json().catch(()=>({})); throw new Error(d.detail||r.statusText); }
+
+
+async function apiFetch(path, opts = {}) {
+  const token = session?.access_token;
+  const headers = new Headers(opts.headers || {});
+
+  if (token) {
+    headers.set("Authorization", `Bearer ${token}`);
+  }
+
+  const r = await fetch(`${API}${path}`, {
+    ...opts,
+    headers,
+  });
+
+  if (r.status === 401) {
+    localStorage.removeItem("mablytic_session");
+    window.location.replace("/");
+    throw new Error("Your session has expired. Please log in again.");
+  }
+
+  if (!r.ok) {
+    const d = await r.json().catch(() => ({}));
+    throw new Error(d.detail || `Request failed (${r.status})`);
+  }
+
   return r.json();
 }
+
+
 
 function ctrColor(v) { return v>10?"var(--green)":v>3?"var(--cyan)":"var(--accent)"; }
 
