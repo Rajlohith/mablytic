@@ -1,3 +1,5 @@
+import json
+import os
 import random
 import re
 from pathlib import Path
@@ -13,12 +15,30 @@ from auth import (
     verify_and_upgrade_password,
 )
 from database import engine, get_db
+from dotenv import load_dotenv
 from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, PlainTextResponse
 from fastapi.staticfiles import StaticFiles
+from google import genai
+from pydantic import BaseModel, Field
 from sqlalchemy import desc
 from sqlalchemy.orm import Session
+
+load_dotenv(Path(__file__).resolve().parent / ".env")
+
+PRIMARY_MODEL = "gemini-3.5-flash-lite"
+FALLBACK_MODEL = "gemini-3.1-flash-lite"
+
+
+class AdGenerationRequest(BaseModel):
+    product: str = Field(min_length=2, max_length=200)
+    category: str = Field(min_length=2, max_length=60)
+    audience: str = Field(default="General audience", max_length=200)
+    tone: str = Field(default="Persuasive and professional", max_length=100)
+    key_points: str = Field(default="", max_length=1000)
+    variant: str = Field(default="A", pattern="^[AB]$")
+
 
 models.Base.metadata.create_all(bind=engine)
 
@@ -567,6 +587,102 @@ def get_dashboard_stats(
         "total_views": total_views,
         "total_clicks": total_clicks,
         "global_ctr": global_ctr,
+    }
+
+
+@app.post("/admin/ads/generate", tags=["Admin"])
+def generate_ad_copy(
+    request: AdGenerationRequest,
+    admin: models.User = Depends(require_admin),
+):
+    api_key = os.getenv("GEMINI_API_KEY")
+
+    if not api_key:
+        raise HTTPException(
+            status_code=503,
+            detail="Gemini API key is not configured on the server.",
+        )
+
+    prompt = f"""
+You are an advertising copywriter for MABlytic.
+
+Generate one advertisement using the supplied information.
+Do not invent specifications, prices, discounts, or guarantees.
+
+Product: {request.product}
+Category: {request.category}
+Audience: {request.audience}
+Tone: {request.tone}
+Key points: {request.key_points or "No additional details provided"}
+Variant: {request.variant}
+
+Return a JSON object with exactly these string fields:
+- title: a concise headline
+- content: engaging advertisement copy
+- call_to_action: a short action phrase
+
+Keep the content concise and suitable for a website advertisement.
+"""
+
+    client = genai.Client(api_key=api_key)
+
+    config = {
+        "response_mime_type": "application/json",
+        "response_schema": {
+            "type": "OBJECT",
+            "properties": {
+                "title": {"type": "STRING"},
+                "content": {"type": "STRING"},
+                "call_to_action": {"type": "STRING"},
+            },
+            "required": ["title", "content", "call_to_action"],
+        },
+    }
+
+    response = None
+
+    for model_name in (PRIMARY_MODEL, FALLBACK_MODEL):
+        try:
+            response = client.models.generate_content(
+                model=model_name,
+                contents=prompt,
+                config=config,
+            )
+            print(f"Ad generated using {model_name}")
+            break
+
+        except Exception as exc:
+            print(f"{model_name} failed: {type(exc).__name__}: {exc}")
+
+    if response is None:
+        raise HTTPException(
+            status_code=502,
+            detail="Ad generation failed with both Gemini models.",
+        )
+
+    try:
+        generated = json.loads(response.text or "{}")
+
+        title = generated.get("title", "").strip()
+        content = generated.get("content", "").strip()
+        call_to_action = generated.get("call_to_action", "").strip()
+
+        if not all([title, content, call_to_action]):
+            raise ValueError("Incomplete ad content returned.")
+
+    except (ValueError, AttributeError, TypeError) as exc:
+        print(f"Invalid Gemini response: {type(exc).__name__}: {exc}")
+        raise HTTPException(
+            status_code=502,
+            detail="Gemini returned invalid or incomplete ad content.",
+        ) from exc
+
+    return {
+        "title": title,
+        "content": content,
+        "call_to_action": call_to_action,
+        "category": request.category.lower(),
+        "variant": request.variant,
     }
 
 

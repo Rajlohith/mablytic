@@ -456,6 +456,90 @@ async function deleteUser() {
 }
 
 // ── ADS ───────────────────────────────────────────────────
+
+function openAIGenerator() {
+  document.getElementById("ai-generator-modal").style.display = "flex";
+
+  document.getElementById("ai-product").value = document
+    .getElementById("ad-title")
+    .value.trim();
+
+  document.getElementById("ai-key-points").value = document
+    .getElementById("ad-content")
+    .value.trim();
+
+  const existingCategory = document
+    .getElementById("ad-cat")
+    .value.trim()
+    .toLowerCase();
+
+  const categorySelect = document.getElementById("ai-category");
+
+  if (
+    [...categorySelect.options].some(
+      (option) => option.value === existingCategory,
+    )
+  ) {
+    categorySelect.value = existingCategory;
+  }
+}
+
+function closeAIGenerator() {
+  document.getElementById("ai-generator-modal").style.display = "none";
+}
+
+async function generateAdWithAI() {
+  const product = document.getElementById("ai-product").value.trim();
+  const audience =
+    document.getElementById("ai-audience").value.trim() || "General audience";
+  const tone = document.getElementById("ai-tone").value;
+  const key_points = document.getElementById("ai-key-points").value.trim();
+  const category = document
+    .getElementById("ai-category")
+    .value.trim()
+    .toLowerCase();
+  const variant = document.getElementById("ad-variant").value;
+
+  if (!product || !category) {
+    toast("Enter a product and category before generating an ad", "err");
+    return;
+  }
+
+  const button = document.getElementById("generate-ad-btn");
+  const originalText = button.textContent;
+
+  button.disabled = true;
+  button.textContent = "Generating…";
+
+  try {
+    const generated = await apiFetch("/admin/ads/generate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        product,
+        category,
+        audience,
+        tone,
+        key_points,
+        variant,
+      }),
+    });
+
+    document.getElementById("ad-title").value = generated.title;
+    document.getElementById("ad-cat").value = generated.category || category;
+    document.getElementById("ad-content").value =
+      `${generated.content}\n\n${generated.call_to_action}`;
+
+    closeAIGenerator();
+    toast("Ad generated. Review it before publishing.", "ok");
+  } catch (e) {
+    toast(`AI generation failed: ${e.message}`, "err");
+  } finally {
+    button.disabled = false;
+    button.textContent = originalText;
+  }
+}
+
 async function loadAds() {
   const list = document.getElementById("ad-list");
   list.innerHTML = `<div class="loading">Loading…</div>`;
@@ -516,7 +600,10 @@ async function selectAd(id) {
 async function createAd() {
   const title = document.getElementById("ad-title").value.trim();
   const content = document.getElementById("ad-content").value.trim();
-  const category = document.getElementById("ad-cat").value.trim().toLowerCase();
+  const category = document
+    .getElementById("ai-category")
+    .value.trim()
+    .toLowerCase();
   const variant = document.getElementById("ad-variant").value;
   const image_url = document.getElementById("ad-img").value.trim();
   if (!title || !content || !category) {

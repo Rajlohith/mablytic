@@ -383,9 +383,23 @@
                 <label>Image URL (optional — for future use)</label
                 ><input type="text" id="ad-img" placeholder="https://…" />
               </div>
-              <button class="btn btn-primary" onclick="createAd()">
-                ✨ Publish Ad
-              </button>
+              <div class="form-row">
+                <button
+                  class="btn btn-ghost"
+                  type="button"
+                  onclick="openAIGenerator()"
+                >
+                  ✨ Generate with AI
+                </button>
+
+                <button
+                  class="btn btn-primary"
+                  type="button"
+                  onclick="createAd()"
+                >
+                  ✨ Publish Ad
+                </button>
+              </div>
             </div>
             <div>
               <div class="section-header mb-4">
@@ -416,6 +430,176 @@
               Ad Performance (GET /admin/analytics/ad/{id})
             </div>
             <div class="card" id="ad-detail"></div>
+          </div>
+        </div>
+        <!-- ══ AD MANAGEMENT ══════════════════════════════════ -->
+        <div class="page" id="page-ads">
+          <div class="grid-2">
+            <div class="card">
+              <div class="card-title">Create Ad (POST /ads/)</div>
+              <div class="form-group">
+                <label>Title</label
+                ><input
+                  type="text"
+                  id="ad-title"
+                  placeholder="TechPro Laptop 2026"
+                />
+              </div>
+              <div class="form-group">
+                <label>Content</label
+                ><textarea id="ad-content" placeholder="Ad copy…"></textarea>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label>Category</label
+                  ><input type="text" id="ad-cat" placeholder="tech" />
+                </div>
+                <div class="form-group">
+                  <label>Variant (A/B only)</label>
+                  <select id="ad-variant">
+                    <option value="A">A</option>
+                    <option value="B">B</option>
+                  </select>
+                </div>
+              </div>
+              <div class="form-group">
+                <label>Image URL (optional — for future use)</label
+                ><input type="text" id="ad-img" placeholder="https://…" />
+              </div>
+              <div class="form-row">
+                <button
+                  class="btn btn-ghost"
+                  type="button"
+                  onclick="openAIGenerator()"
+                >
+                  ✨ Generate with AI
+                </button>
+
+                <button
+                  class="btn btn-primary"
+                  type="button"
+                  onclick="createAd()"
+                >
+                  ✨ Publish Ad
+                </button>
+              </div>
+            </div>
+            <div>
+              <div class="section-header mb-4">
+                <span class="section-title">All Ads (GET /admin/ads)</span
+                ><button class="btn btn-ghost btn-sm" onclick="loadAds()">
+                  ↻
+                </button>
+              </div>
+              <div class="card" style="padding: 0; overflow: hidden">
+                <div class="scroll-list" id="ad-list">
+                  <div class="loading">Loading…</div>
+                </div>
+              </div>
+              <div class="card mt-4">
+                <div class="card-title">Delete Ad (DELETE /ads/{id})</div>
+                <div class="form-group">
+                  <label>Ad ID</label
+                  ><input type="number" id="del-aid" placeholder="3" min="1" />
+                </div>
+                <button class="btn btn-danger btn-sm" onclick="deleteAd()">
+                  🗑 Delete Ad
+                </button>
+              </div>
+            </div>
+          </div>
+          <div class="mt-4" id="ad-detail-wrap" style="display: none">
+            <div class="section-title mb-4">
+              Ad Performance (GET /admin/analytics/ad/{id})
+            </div>
+            <div class="card" id="ad-detail"></div>
+          </div>
+        </div>
+        <div
+          class="modal-overlay"
+          id="ai-generator-modal"
+          style="display: none"
+        >
+          <div class="card">
+            <div class="card-title">✨ Generate Ad with Gemini</div>
+
+            <div class="form-group">
+              <label for="ai-product">Product or Service</label>
+              <input
+                type="text"
+                id="ai-product"
+                placeholder="e.g. TechPro Laptop 2026"
+              />
+            </div>
+            <div class="form-group">
+              <label for="ai-audience">Target Audience</label>
+              <input
+                type="text"
+                id="ai-audience"
+                placeholder="e.g. Students, developers, professionals"
+              />
+            </div>
+
+            <div class="form-group">
+              <label for="ai-category">Category</label>
+              <select id="ai-category">
+                <option value="tech">💻 Tech</option>
+                <option value="gaming">🎮 Gaming</option>
+                <option value="fitness">💪 Fitness</option>
+                <option value="health">🏥 Health</option>
+                <option value="food">🍕 Food</option>
+                <option value="travel">✈️ Travel</option>
+                <option value="sports">⚽ Sports</option>
+                <option value="books">📚 Books</option>
+                <option value="education">🎓 Education</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="ai-tone">Advertisement Tone</label>
+              <select id="ai-tone">
+                <option value="Persuasive and professional">
+                  Persuasive and professional
+                </option>
+                <option value="Friendly and conversational">
+                  Friendly and conversational
+                </option>
+                <option value="Creative and engaging">
+                  Creative and engaging
+                </option>
+                <option value="Formal and informative">
+                  Formal and informative
+                </option>
+                <option value="Bold and energetic">Bold and energetic</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="ai-key-points">Key Selling Points</label>
+              <textarea
+                id="ai-key-points"
+                placeholder="e.g. Affordable, portable, high performance"
+              ></textarea>
+            </div>
+
+            <div class="form-row">
+              <button
+                class="btn btn-primary"
+                type="button"
+                id="generate-ad-btn"
+                onclick="generateAdWithAI()"
+              >
+                ✨ Generate
+              </button>
+
+              <button
+                class="btn btn-ghost"
+                type="button"
+                onclick="closeAIGenerator()"
+              >
+                Cancel
+              </button>
+            </div>
           </div>
         </div>
 
