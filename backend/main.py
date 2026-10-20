@@ -1,16 +1,17 @@
 import hashlib
-import re
-from fastapi import FastAPI, Depends, HTTPException
-from fastapi.responses import PlainTextResponse
-from fastapi.middleware.cors import CORSMiddleware
-from sqlalchemy.orm import Session
-from sqlalchemy import desc, func
-from typing import List
 import random
+import re
 
-import models, schemas
-from database import engine, get_db
+import models
+import schemas
 from ad_serving import ThompsonSamplingBandit, user_preference_categories
+from auth import create_access_token, verify_and_upgrade_password
+from database import engine, get_db
+from fastapi import Depends, FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import PlainTextResponse
+from sqlalchemy import desc
+from sqlalchemy.orm import Session
 
 models.Base.metadata.create_all(bind=engine)
 
@@ -23,10 +24,12 @@ app = FastAPI(
     openapi_url=None,
 )
 
+
 # Block crawlers
 @app.get("/robots.txt", response_class=PlainTextResponse)
 async def robots():
     return "User-agent: *\nDisallow: /"
+
 
 origins = [
     "https://mablytic.web.app",
@@ -53,6 +56,7 @@ app.add_middleware(
 def seed_on_startup():
     """Seeds the database only if it is empty — safe to run on every cold start."""
     from seed_data import seed
+
     seed()
 
 
@@ -66,8 +70,10 @@ def health():
 _SALT = "mablytic_salt_v1"
 _OLD_SALT = "adwise_salt_v1"  # kept only so pre-existing users can still log in
 
+
 def hash_password(password: str, salt: str = _SALT) -> str:
     return hashlib.sha256(f"{salt}{password}".encode()).hexdigest()
+
 
 def verify_password(plain: str, stored: str) -> str | None:
     """Returns the salt that matched the stored hash, or None if invalid."""
@@ -81,16 +87,22 @@ def verify_password(plain: str, stored: str) -> str | None:
 # ── Validation ────────────────────────────────────────────────────────────────
 def validate_username(username: str):
     if not re.match(r"^[a-zA-Z0-9]+$", username):
-        raise HTTPException(status_code=400, detail="Username must contain only letters and numbers.")
+        raise HTTPException(
+            status_code=400, detail="Username must contain only letters and numbers."
+        )
+
 
 def validate_password(password: str):
     if not re.match(r"^[a-zA-Z0-9]{6,8}$", password):
-        raise HTTPException(status_code=400, detail="Password must be 6-8 alphanumeric characters.")
+        raise HTTPException(
+            status_code=400, detail="Password must be 6-8 alphanumeric characters."
+        )
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # AUTH
 # ═══════════════════════════════════════════════════════════════════════════════
+
 
 @app.post("/auth/register", response_model=schemas.UserPublic, tags=["Auth"])
 def register(user: schemas.UserRegister, db: Session = Depends(get_db)):
@@ -98,7 +110,10 @@ def register(user: schemas.UserRegister, db: Session = Depends(get_db)):
     validate_password(user.password)
     if db.query(models.User).filter(models.User.username == user.username).first():
         raise HTTPException(status_code=409, detail="Username already taken.")
-    if user.email and db.query(models.User).filter(models.User.email == user.email).first():
+    if (
+        user.email
+        and db.query(models.User).filter(models.User.email == user.email).first()
+    ):
         raise HTTPException(status_code=409, detail="Email already registered.")
     db_user = models.User(
         username=user.username,
@@ -119,25 +134,43 @@ def register(user: schemas.UserRegister, db: Session = Depends(get_db)):
 
 @app.post("/auth/login", tags=["Auth"])
 def login(creds: schemas.UserLogin, db: Session = Depends(get_db)):
-    db_user = db.query(models.User).filter(models.User.username == creds.username).first()
+    db_user = (
+        db.query(models.User).filter(models.User.username == creds.username).first()
+    )
+
     if not db_user:
-        raise HTTPException(status_code=401, detail="Invalid username or password.")
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid username or password.",
+        )
 
-    matched_salt = verify_password(creds.password, db_user.password_hash)
-    if not matched_salt:
-        raise HTTPException(status_code=401, detail="Invalid username or password.")
+    valid, replacement_hash = verify_and_upgrade_password(
+        creds.password,
+        db_user.password_hash,
+    )
 
-    # Lazily migrate old-salt users to the new salt on successful login
-    if matched_salt == _OLD_SALT:
-        db_user.password_hash = hash_password(creds.password, _SALT)
+    if not valid:
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid username or password.",
+        )
+
+    # Upgrade legacy hashes, or refresh outdated Argon2 parameters.
+    if replacement_hash is not None:
+        db_user.password_hash = replacement_hash
         db.commit()
+        db.refresh(db_user)
+
+    access_token = create_access_token(db_user)
 
     return {
-        "id":          db_user.id,
-        "username":    db_user.username,
-        "first_name":  db_user.first_name,
-        "last_name":   db_user.last_name,
-        "is_admin":    db_user.is_admin,
+        "access_token": access_token,
+        "token_type": "bearer",
+        "id": db_user.id,
+        "username": db_user.username,
+        "first_name": db_user.first_name,
+        "last_name": db_user.last_name,
+        "is_admin": db_user.is_admin,
         "preferences": db_user.preferences,
     }
 
@@ -154,10 +187,11 @@ def get_profile(user_id: int, db: Session = Depends(get_db)):
 # USERS
 # ═══════════════════════════════════════════════════════════════════════════════
 
+
 @app.post("/users/", response_model=schemas.UserResponse, tags=["Users"])
 def create_user_legacy(user: schemas.UserCreate, db: Session = Depends(get_db)):
     db_user = models.User(
-        username=f"user_{random.randint(10000,99999)}",
+        username=f"user_{random.randint(10000, 99999)}",
         password_hash=hash_password("Pass12"),
         preferences=user.preferences,
     )
@@ -167,7 +201,7 @@ def create_user_legacy(user: schemas.UserCreate, db: Session = Depends(get_db)):
     return db_user
 
 
-@app.get("/users/", response_model=List[schemas.UserResponse], tags=["Users"])
+@app.get("/users/", response_model=list[schemas.UserResponse], tags=["Users"])
 def list_users(db: Session = Depends(get_db)):
     return db.query(models.User).all()
 
@@ -195,6 +229,7 @@ def delete_user(user_id: int, db: Session = Depends(get_db)):
 # ADS
 # ═══════════════════════════════════════════════════════════════════════════════
 
+
 @app.post("/ads/", response_model=schemas.AdResponse, tags=["Ads"])
 def create_ad(ad: schemas.AdCreate, db: Session = Depends(get_db)):
     if ad.variant not in ("A", "B"):
@@ -206,7 +241,7 @@ def create_ad(ad: schemas.AdCreate, db: Session = Depends(get_db)):
     return db_ad
 
 
-@app.get("/ads/", response_model=List[schemas.AdResponse], tags=["Ads"])
+@app.get("/ads/", response_model=list[schemas.AdResponse], tags=["Ads"])
 def list_ads(db: Session = Depends(get_db)):
     return db.query(models.Ad).all()
 
@@ -234,6 +269,7 @@ def delete_ad(ad_id: int, db: Session = Depends(get_db)):
 # AD SERVING
 # ═══════════════════════════════════════════════════════════════════════════════
 
+
 @app.get("/serve-ad/{user_id}", response_model=schemas.AdResponse, tags=["Ad Serving"])
 def serve_ad(user_id: int, db: Session = Depends(get_db)):
     """Serve the ad most likely to convert for this user using a Multi-Armed Bandit model."""
@@ -260,10 +296,17 @@ def serve_ad(user_id: int, db: Session = Depends(get_db)):
 # INTERACTIONS
 # ═══════════════════════════════════════════════════════════════════════════════
 
-@app.post("/interactions/", response_model=schemas.InteractionResponse, tags=["Interactions"])
-def log_interaction(interaction: schemas.InteractionCreate, db: Session = Depends(get_db)):
+
+@app.post(
+    "/interactions/", response_model=schemas.InteractionResponse, tags=["Interactions"]
+)
+def log_interaction(
+    interaction: schemas.InteractionCreate, db: Session = Depends(get_db)
+):
     if interaction.interaction_type.lower() not in ("view", "click"):
-        raise HTTPException(status_code=400, detail="interaction_type must be 'view' or 'click'.")
+        raise HTTPException(
+            status_code=400, detail="interaction_type must be 'view' or 'click'."
+        )
     db_i = models.Interaction(**interaction.model_dump())
     db.add(db_i)
     db.commit()
@@ -271,14 +314,24 @@ def log_interaction(interaction: schemas.InteractionCreate, db: Session = Depend
     return db_i
 
 
-@app.get("/interactions/", response_model=List[schemas.InteractionResponse], tags=["Interactions"])
+@app.get(
+    "/interactions/",
+    response_model=list[schemas.InteractionResponse],
+    tags=["Interactions"],
+)
 def list_interactions(limit: int = 100, db: Session = Depends(get_db)):
-    return db.query(models.Interaction).order_by(desc(models.Interaction.id)).limit(limit).all()
+    return (
+        db.query(models.Interaction)
+        .order_by(desc(models.Interaction.id))
+        .limit(limit)
+        .all()
+    )
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # DATABASE MANAGEMENT
 # ═══════════════════════════════════════════════════════════════════════════════
+
 
 @app.post("/clear-database/", tags=["Database"])
 def clear_database(db: Session = Depends(get_db)):
@@ -297,21 +350,30 @@ def clear_database(db: Session = Depends(get_db)):
 # ADMIN
 # ═══════════════════════════════════════════════════════════════════════════════
 
+
 @app.get("/admin/dashboard-stats", tags=["Admin"])
 def get_dashboard_stats(db: Session = Depends(get_db)):
-    total_users  = db.query(models.User).filter(models.User.is_admin == False).count()
+    total_users = db.query(models.User).filter(models.User.is_admin == False).count()
     total_admins = db.query(models.User).filter(models.User.is_admin == True).count()
-    total_ads    = db.query(models.Ad).count()
-    total_views  = db.query(models.Interaction).filter(models.Interaction.interaction_type == "view").count()
-    total_clicks = db.query(models.Interaction).filter(models.Interaction.interaction_type == "click").count()
-    global_ctr   = round((total_clicks / total_views * 100), 2) if total_views > 0 else 0
+    total_ads = db.query(models.Ad).count()
+    total_views = (
+        db.query(models.Interaction)
+        .filter(models.Interaction.interaction_type == "view")
+        .count()
+    )
+    total_clicks = (
+        db.query(models.Interaction)
+        .filter(models.Interaction.interaction_type == "click")
+        .count()
+    )
+    global_ctr = round((total_clicks / total_views * 100), 2) if total_views > 0 else 0
     return {
-        "total_users":  total_users,
+        "total_users": total_users,
         "total_admins": total_admins,
-        "total_ads":    total_ads,
-        "total_views":  total_views,
+        "total_ads": total_ads,
+        "total_views": total_views,
         "total_clicks": total_clicks,
-        "global_ctr":   global_ctr,
+        "global_ctr": global_ctr,
     }
 
 
@@ -320,30 +382,43 @@ def get_ad_analytics(db: Session = Depends(get_db)):
     ads = db.query(models.Ad).all()
     result = []
     for ad in ads:
-        views  = db.query(models.Interaction).filter(
-            models.Interaction.ad_id == ad.id,
-            models.Interaction.interaction_type == "view"
-        ).count()
-        clicks = db.query(models.Interaction).filter(
-            models.Interaction.ad_id == ad.id,
-            models.Interaction.interaction_type == "click"
-        ).count()
-        result.append({
-            "ad_id": ad.id, "title": ad.title,
-            "category": ad.category, "variant": ad.variant,
-            "views": views, "clicks": clicks,
-            "ctr_percentage": round((clicks / views * 100), 2) if views > 0 else 0,
-        })
+        views = (
+            db.query(models.Interaction)
+            .filter(
+                models.Interaction.ad_id == ad.id,
+                models.Interaction.interaction_type == "view",
+            )
+            .count()
+        )
+        clicks = (
+            db.query(models.Interaction)
+            .filter(
+                models.Interaction.ad_id == ad.id,
+                models.Interaction.interaction_type == "click",
+            )
+            .count()
+        )
+        result.append(
+            {
+                "ad_id": ad.id,
+                "title": ad.title,
+                "category": ad.category,
+                "variant": ad.variant,
+                "views": views,
+                "clicks": clicks,
+                "ctr_percentage": round((clicks / views * 100), 2) if views > 0 else 0,
+            }
+        )
     result.sort(key=lambda x: x["ctr_percentage"], reverse=True)
     return result
 
 
-@app.get("/admin/users", response_model=List[schemas.UserResponse], tags=["Admin"])
+@app.get("/admin/users", response_model=list[schemas.UserResponse], tags=["Admin"])
 def get_all_users(db: Session = Depends(get_db)):
     return db.query(models.User).order_by(models.User.id).all()
 
 
-@app.get("/admin/ads", response_model=List[schemas.AdResponse], tags=["Admin"])
+@app.get("/admin/ads", response_model=list[schemas.AdResponse], tags=["Admin"])
 def get_all_ads(db: Session = Depends(get_db)):
     return db.query(models.Ad).order_by(models.Ad.id).all()
 
@@ -353,20 +428,22 @@ def get_user_analytics(user_id: int, db: Session = Depends(get_db)):
     u = db.query(models.User).filter(models.User.id == user_id).first()
     if not u:
         raise HTTPException(status_code=404, detail="User not found.")
-    interactions = db.query(models.Interaction).filter(models.Interaction.user_id == user_id).all()
-    views  = sum(1 for i in interactions if i.interaction_type == "view")
+    interactions = (
+        db.query(models.Interaction).filter(models.Interaction.user_id == user_id).all()
+    )
+    views = sum(1 for i in interactions if i.interaction_type == "view")
     clicks = sum(1 for i in interactions if i.interaction_type == "click")
     return {
-        "user_id":      u.id,
-        "username":     u.username,
-        "full_name":    f"{u.first_name} {u.last_name}".strip(),
-        "email":        u.email,
-        "gender":       u.gender,
-        "age":          u.age,
-        "preferences":  u.preferences,
-        "total_views":  views,
+        "user_id": u.id,
+        "username": u.username,
+        "full_name": f"{u.first_name} {u.last_name}".strip(),
+        "email": u.email,
+        "gender": u.gender,
+        "age": u.age,
+        "preferences": u.preferences,
+        "total_views": views,
         "total_clicks": clicks,
-        "ctr":          round((clicks / views * 100), 2) if views > 0 else 0,
+        "ctr": round((clicks / views * 100), 2) if views > 0 else 0,
     }
 
 
@@ -375,49 +452,64 @@ def get_ad_analytics_by_id(ad_id: int, db: Session = Depends(get_db)):
     ad = db.query(models.Ad).filter(models.Ad.id == ad_id).first()
     if not ad:
         raise HTTPException(status_code=404, detail="Ad not found.")
-    interactions = db.query(models.Interaction).filter(models.Interaction.ad_id == ad_id).all()
-    views  = sum(1 for i in interactions if i.interaction_type == "view")
+    interactions = (
+        db.query(models.Interaction).filter(models.Interaction.ad_id == ad_id).all()
+    )
+    views = sum(1 for i in interactions if i.interaction_type == "view")
     clicks = sum(1 for i in interactions if i.interaction_type == "click")
     return {
-        "ad_id":        ad.id,
-        "title":        ad.title,
-        "category":     ad.category,
-        "variant":      ad.variant,
-        "image_url":    ad.image_url,
-        "total_views":  views,
+        "ad_id": ad.id,
+        "title": ad.title,
+        "category": ad.category,
+        "variant": ad.variant,
+        "image_url": ad.image_url,
+        "total_views": views,
         "total_clicks": clicks,
-        "ctr":          round((clicks / views * 100), 2) if views > 0 else 0,
+        "ctr": round((clicks / views * 100), 2) if views > 0 else 0,
     }
 
 
 @app.get("/admin/history", tags=["Admin"])
 def get_history(limit: int = 50, db: Session = Depends(get_db)):
-    logs = db.query(models.Interaction).order_by(desc(models.Interaction.id)).limit(limit).all()
+    logs = (
+        db.query(models.Interaction)
+        .order_by(desc(models.Interaction.id))
+        .limit(limit)
+        .all()
+    )
     out = []
     for log in logs:
         u = db.query(models.User).filter(models.User.id == log.user_id).first()
         a = db.query(models.Ad).filter(models.Ad.id == log.ad_id).first()
-        out.append({
-            "log_id":     log.id,
-            "timestamp":  log.timestamp.strftime("%Y-%m-%d %H:%M:%S") if log.timestamp else "N/A",
-            "user_id":    log.user_id,
-            "username":   u.username    if u else "Unknown",
-            "user_prefs": u.preferences if u else "—",
-            "ad_title":   a.title       if a else "Unknown",
-            "variant":    a.variant     if a else "-",
-            "type":       log.interaction_type,
-        })
+        out.append(
+            {
+                "log_id": log.id,
+                "timestamp": log.timestamp.strftime("%Y-%m-%d %H:%M:%S")
+                if log.timestamp
+                else "N/A",
+                "user_id": log.user_id,
+                "username": u.username if u else "Unknown",
+                "user_prefs": u.preferences if u else "—",
+                "ad_title": a.title if a else "Unknown",
+                "variant": a.variant if a else "-",
+                "type": log.interaction_type,
+            }
+        )
     return out
 
 
 @app.post("/admin/users", tags=["Admin"])
 def admin_create_user(user_in: schemas.UserCreate, db: Session = Depends(get_db)):
     new_user = models.User(
-        username=f"persona_{random.randint(10000,99999)}",
+        username=f"persona_{random.randint(10000, 99999)}",
         password_hash=hash_password("Pass12"),
         preferences=user_in.preferences,
     )
     db.add(new_user)
     db.commit()
     db.refresh(new_user)
-    return {"message": "Persona created.", "user_id": new_user.id, "username": new_user.username}
+    return {
+        "message": "Persona created.",
+        "user_id": new_user.id,
+        "username": new_user.username,
+    }

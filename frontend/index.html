@@ -155,8 +155,8 @@ let selectedRole = "user";
 // Already logged in? Redirect.
 const session = JSON.parse(localStorage.getItem("mablytic_session") || "null");
 if (session) {
-  window.location.href = session.is_admin ? "/admin" : "/feed";
-}
+  window.location.href = session.is_admin ? "/admin.html" : "/feed.html";
+} 
 
 function setRole(role) {
   selectedRole = role;
@@ -203,7 +203,7 @@ async function doLogin() {
     }
 
     localStorage.setItem("mablytic_session", JSON.stringify(user));
-    window.location.href = user.is_admin ? "/admin" : "/feed";
+    window.location.href = user.is_admin ? "/admin.html" : "/feed.html";
   } catch (e) {
     showErr(e.message);
     btn.innerHTML = "Login";
