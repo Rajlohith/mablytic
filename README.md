@@ -110,7 +110,7 @@ The project serves as both a production-ready web application and a research pla
 | Backend Framework      | FastAPI                                |
 | Programming Language   | Python 3.11                            |
 | ORM                    | SQLAlchemy                             |
-| Database (Development) | SQLite                                 |
+| Database (Development) | PostgreSQL (Docker)                    |
 | Database (Production)  | PostgreSQL (Neon)                      |
 | Frontend               | HTML5                                  |
 | Styling                | Tailwind CSS + CSS3                    |
@@ -134,7 +134,7 @@ flowchart TD
     F[Frontend PWA<br/>HTML • CSS • JavaScript]
     B[FastAPI Backend]
 
-    DB[(SQLite<br/>Development<br/><br/>PostgreSQL - Neon<br/>Production)]
+    DB[(PostgreSQL - Local (Docker)<br/>Development<br/><br/>PostgreSQL - Neon<br/>Production)]
 
     subgraph BM[Backend Modules]
         direction TB
@@ -188,9 +188,9 @@ flowchart TD
 
 ### Why Neon PostgreSQL?
 
-MABlytic uses SQLite during local development and Neon PostgreSQL in production.
+MABlytic uses PostgreSQL in both environments: a local Docker container during development and Neon PostgreSQL in production, so behaviour is identical everywhere.
 
-Since Render instances use ephemeral storage, local SQLite databases do not persist across service restarts or redeployments. To ensure reliable data persistence and production scalability, Neon PostgreSQL is used as the primary cloud database.
+Since Render instances use ephemeral storage, file-based databases do not persist across service restarts or redeployments. To ensure reliable data persistence and production scalability, Neon PostgreSQL is used as the primary cloud database.
 
 Benefits include:
 
@@ -346,6 +346,24 @@ Advertisements with higher expected engagement gradually receive more exposure w
 ## Installation
 
 ### Backend
+
+Start the local PostgreSQL database (requires Docker):
+
+```bash
+docker compose up -d
+```
+
+Create `backend/.env` with a freshly generated JWT secret (PowerShell, run inside `backend`):
+
+```powershell
+$secret = python -c "import secrets; print(secrets.token_hex(32))"
+@"
+DATABASE_URL=postgresql://postgres:postgres@localhost:5432/mablytic
+MABLYTIC_JWT_SECRET=$secret
+"@ | Set-Content -Encoding ascii .env
+```
+
+Optional: add `GEMINI_API_KEY=your-key` to `.env` for the ad generator. To use the cloud database instead, set `DATABASE_URL` to your Neon connection string. On macOS/Linux, copy `backend/.env.example` to `backend/.env` and fill in the values.
 
 ```bash
 cd backend

@@ -1,0 +1,26 @@
+# Local PostgreSQL for development (mirrors the Neon production database).
+#   docker compose up -d
+# Connection string (already the default in backend/database.py):
+#   postgresql://postgres:postgres@localhost:5432/mablytic
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: mablytic-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: mablytic
+    ports:
+      - "5432:5432"
+    volumes:
+      - mablytic_pgdata:/var/lib/postgresql/data
+      - ./backend/db-init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d mablytic"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  mablytic_pgdata:

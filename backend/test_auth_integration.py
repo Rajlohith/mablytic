@@ -4,10 +4,17 @@ import unittest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from sqlalchemy.pool import StaticPool
 
 # Set a test-only JWT secret before importing the application.
 os.environ["MABLYTIC_JWT_SECRET"] = "isolated-test-secret-not-for-production"
+
+# Tests drop/create all tables, so they run against a SEPARATE PostgreSQL database
+# (created by docker-compose) and never touch the development data.
+TEST_DATABASE_URL = os.environ.get(
+    "TEST_DATABASE_URL",
+    "postgresql://postgres:postgres@localhost:5432/mablytic_test",
+)
+os.environ["DATABASE_URL"] = TEST_DATABASE_URL
 
 import auth
 import main
@@ -18,11 +25,7 @@ from database import Base, get_db
 class AuthIntegrationTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.engine = create_engine(
-            "sqlite://",
-            connect_args={"check_same_thread": False},
-            poolclass=StaticPool,
-        )
+        cls.engine = create_engine(TEST_DATABASE_URL, pool_pre_ping=True)
         cls.TestSession = sessionmaker(
             autocommit=False,
             autoflush=False,
