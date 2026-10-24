@@ -25,18 +25,25 @@ if DATABASE_URL.startswith("postgres://"):
 _host = (urlparse(DATABASE_URL).hostname or "").lower()
 _is_local = _host in ("localhost", "127.0.0.1", "::1", "db", "postgres")
 
-connect_args = {"connect_timeout": 10}  # Fail fast rather than hang
-if not _is_local and "sslmode=" not in DATABASE_URL:
-    connect_args["sslmode"] = "require"  # Neon.tech requires SSL
+_is_sqlite = DATABASE_URL.startswith("sqlite")
 
-engine = create_engine(
-    DATABASE_URL,
-    pool_pre_ping=True,  # Re-check connections before use (important for Neon serverless)
-    pool_recycle=300,  # Recycle connections every 5 minutes
-    pool_size=5,
-    max_overflow=10,
-    connect_args=connect_args,
-)
+if _is_sqlite:
+    # SQLite (local development / tests only): no SSL, no pooling options.
+    connect_args = {"check_same_thread": False}
+    engine = create_engine(DATABASE_URL, connect_args=connect_args)
+else:
+    connect_args = {"connect_timeout": 10}  # Fail fast rather than hang
+    if not _is_local and "sslmode=" not in DATABASE_URL:
+        connect_args["sslmode"] = "require"  # Neon.tech requires SSL
+
+    engine = create_engine(
+        DATABASE_URL,
+        pool_pre_ping=True,  # Re-check connections before use (important for Neon serverless)
+        pool_recycle=300,  # Recycle connections every 5 minutes
+        pool_size=5,
+        max_overflow=10,
+        connect_args=connect_args,
+    )
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()

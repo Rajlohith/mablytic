@@ -1,5 +1,8 @@
 # MABlytic
 
+> **v4 update:** the frontend is now a React + TypeScript + Vite + Tailwind app in [`web/`](web/README.md) (the previous static site is preserved in `frontend-legacy/`). The backend gained articles, campaigns, ad scheduling/placement, a public ad endpoint and admin management endpoints. See `web/README.md` for run instructions.
+
+
 ![Python](https://img.shields.io/badge/Python-3.11-blue?logo=python)
 ![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white)
 ![Multi-Armed Bandit](https://img.shields.io/badge/Reinforcement_Learning-Multi--Armed_Bandit-blueviolet)

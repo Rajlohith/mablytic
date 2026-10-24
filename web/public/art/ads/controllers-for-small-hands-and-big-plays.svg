@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 628" role="img" aria-label="Controllers for small hands and big plays" preserveAspectRatio="xMidYMid slice"><rect width="1200" height="628" fill="#efe6f3"/>
+<polygon points="-450,0 -330,0 -581,628 -701,628" fill="#c2a5dc"/>
+<polygon points="-300,0 -180,0 -431,628 -551,628" fill="#efe6f3"/>
+<polygon points="-150,0 -30,0 -281,628 -401,628" fill="#c2a5dc"/>
+<polygon points="0,0 120,0 -131,628 -251,628" fill="#efe6f3"/>
+<polygon points="150,0 270,0 19,628 -101,628" fill="#c2a5dc"/>
+<polygon points="300,0 420,0 169,628 49,628" fill="#efe6f3"/>
+<polygon points="450,0 570,0 319,628 199,628" fill="#c2a5dc"/>
+<polygon points="600,0 720,0 469,628 349,628" fill="#efe6f3"/>
+<polygon points="750,0 870,0 619,628 499,628" fill="#c2a5dc"/>
+<polygon points="900,0 1020,0 769,628 649,628" fill="#efe6f3"/>
+<polygon points="1050,0 1170,0 919,628 799,628" fill="#c2a5dc"/>
+<polygon points="1200,0 1320,0 1069,628 949,628" fill="#efe6f3"/>
+<polygon points="1350,0 1470,0 1219,628 1099,628" fill="#c2a5dc"/>
+<polygon points="1500,0 1620,0 1369,628 1249,628" fill="#efe6f3"/>
+<polygon points="1650,0 1770,0 1519,628 1399,628" fill="#c2a5dc"/>
+<path d="M424 628 V345 A174 174 0 0 1 771 345 V628 Z" fill="#6b3fa0"/>
+<circle cx="598" cy="283" r="58" fill="#2bb3a3"/>
+<rect x="0" y="620" width="1200" height="8" fill="#1d1530" opacity=".85"/><rect x="32" y="190" width="1136" height="252" fill="#fff" opacity=".86"/><text x="64" y="244" font-family="Helvetica, Arial, sans-serif" font-size="30" font-weight="700" fill="#1d1530" letter-spacing="1">Gridlock Gear</text><text x="64" y="300" font-family="Georgia, 'Times New Roman', serif" font-size="64" font-weight="700" fill="#1d1530">Controllers for small</text><text x="64" y="376" font-family="Georgia, 'Times New Roman', serif" font-size="64" font-weight="700" fill="#1d1530">hands and big plays</text></svg>

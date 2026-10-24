@@ -1,0 +1,24 @@
+@import "@fontsource/libre-caslon-text/400.css";
+@import "@fontsource/libre-caslon-text/700.css";
+@import "@fontsource-variable/source-serif-4";
+@import "@fontsource-variable/libre-franklin";
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html { -webkit-text-size-adjust: 100%; }
+  body { @apply bg-paper font-serif text-body antialiased; }
+  :focus-visible { @apply outline outline-2 outline-offset-2 outline-accent; }
+  @media (prefers-reduced-motion: reduce) {
+    * { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; }
+  }
+}
+
+/* Long-form body: the only place plain CSS is warranted — drop-cap-free,
+   but tuned measure, hyphenation and paragraph rhythm. */
+@layer components {
+  .prose-article p { @apply mb-6 font-serif text-article text-ink; hyphens: auto; }
+  .prose-article p:first-of-type::first-line { @apply font-semibold; }
+}

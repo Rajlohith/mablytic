@@ -1,15 +1,13 @@
 {
   "hosting": {
-    "public": "frontend",
+    "public": "web/dist",
     "cleanUrls": true,
     "trailingSlash": false,
-
     "ignore": [
       "firebase.json",
       "**/.*",
       "**/node_modules/**"
     ],
-
     "headers": [
       {
         "source": "**",
@@ -19,6 +17,12 @@
             "value": "noindex, nofollow, noarchive, nosnippet"
           }
         ]
+      }
+    ],
+    "rewrites": [
+      {
+        "source": "**",
+        "destination": "/index.html"
       }
     ]
   }

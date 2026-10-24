@@ -38,53 +38,80 @@ USERS = [
          email="emma@example.com",    gender="female", age=35, preferences="books,education"),
 ]
 
-ADS = [
-    # Tech — A & B
-    dict(title="MacBook Pro M5",          category="tech",      variant="A",
-         content="Experience unprecedented power with the M5 chip. Up to 24-hour battery life and a stunning Liquid Retina XDR display. Starting at $1,999."),
-    dict(title="iPhone 17 Pro",           category="tech",      variant="B",
-         content="Revolutionary 5x optical zoom and an all-new titanium design. Pre-order now and get $100 off with trade-in."),
-    # Gaming — A & B
-    dict(title="PlayStation 6 — Pre-Order",  category="gaming", variant="A",
-         content="Next-gen gaming begins this November. 8K resolution, 240fps, and true haptic feedback. Secure your console today."),
-    dict(title="RTX 5090 Graphics Card",  category="gaming",    variant="B",
-         content="Double the ray-tracing performance of its predecessor. AI-enhanced frame generation at 4K 144fps. Limited stock available."),
-    # Fitness — A & B
-    dict(title="FitPro Smartwatch Ultra", category="fitness",   variant="A",
-         content="Clinical-grade heart-rate, sleep, and VO2 max tracking. 14-day battery. Waterproof to 100m. Free 3-month coaching plan included."),
-    dict(title="Protein Max — Build Faster", category="fitness", variant="B",
-         content="Scientifically formulated with 40g protein per serving and zero fillers. Trusted by Olympic athletes. Try your first batch for $9.99."),
-    # Health — A & B
-    dict(title="MyFitnessPal Premium",    category="health",    variant="A",
-         content="Complete nutrition tracking, macro goals, and guided meal plans. 14-day free trial. No credit card required."),
-    dict(title="MindWell — Calm in 10 Min", category="health",  variant="B",
-         content="Reduce cortisol and improve sleep quality with 10-minute daily sessions. Join 5 million users already sleeping better."),
-    # Food — A & B
-    dict(title="HelloFresh — 50% Off First Box", category="food", variant="A",
-         content="Chef-curated recipes with farm-fresh ingredients delivered to your door. Choose from 60+ weekly options. Cancel anytime."),
-    dict(title="Starbucks Rewards Plus",  category="food",      variant="B",
-         content="Earn 3× stars on every purchase and unlock free drinks faster. Birthday treat, early access to seasonal drinks, and more."),
-    # Travel — A & B
-    dict(title="Airbnb — Summer Deals 2026", category="travel", variant="A",
-         content="Unique stays at up to 40% off this summer. Treehouse in Bali or cabin in the Alps — find your perfect escape."),
-    dict(title="Emirates Business Class",  category="travel",   variant="B",
-         content="Lie-flat beds, gourmet dining at 40,000 ft, and a private chauffeur to the airport. Book by June 30 for priority boarding."),
-    # Sports — A & B
-    dict(title="Nike Alphafly 3 — Race Day", category="sports", variant="A",
-         content="Worn by sub-2-hour marathon runners. ZoomX foam + carbon plate for maximum energy return. Limited 2026 colorways now live."),
-    dict(title="ESPN+ Annual Plan",        category="sports",   variant="B",
-         content="Unlimited live sports, exclusive MLB, UFC, and NHL coverage plus original documentaries. Just $59.99/year — save 40%."),
-    # Books — A & B
-    dict(title="Kindle Unlimited — 3 Months Free", category="books", variant="A",
-         content="Access over 4 million titles, magazines, and audiobooks on any device. No commitment — cancel at any time."),
-    dict(title="Audible Premium Plus",     category="books",    variant="B",
-         content="One credit per month for any audiobook plus unlimited access to the Plus Catalog. Start with a 30-day free trial."),
-    # Education — A & B
-    dict(title="Coursera Plus — Annual",   category="education", variant="A",
-         content="7,000+ courses from Stanford, Google, and IBM. Earn a job-ready certificate in 3 months. First month free for new subscribers."),
-    dict(title="MasterClass All-Access",   category="education", variant="B",
-         content="Learn cooking with Gordon Ramsay, tennis with Serena Williams, and filmmaking with Spike Lee. 190+ instructors, one subscription."),
-]
+from demo_content import LEGACY_ADS as ADS  # noqa: E402  (moved; unchanged content)
+
+
+def seed_content():
+    """Idempotent v4 content: demo articles, ad creatives, campaigns.
+
+    Safe on every start-up and on databases created by older versions:
+    articles are inserted only when the table is empty, ads are matched by
+    title, and existing ads only gain an image if they have none.
+    """
+    from datetime import UTC, datetime, timedelta
+
+    from demo_content import CAMPAIGNS, LEGACY_ADS, NEW_ADS, article_rows, slugify
+    from migrations import ensure_schema
+
+    ensure_schema(engine)
+    db = SessionLocal()
+    try:
+        added = {"articles": 0, "ads": 0, "campaigns": 0}
+
+        if db.query(models.Article).count() == 0:
+            now = datetime.now(UTC)
+            for row in article_rows():
+                age = row.pop("_age_hours")
+                db.add(models.Article(published_at=now - timedelta(hours=age), **row))
+                added["articles"] += 1
+
+        campaigns = {}
+        for name, status, budget in CAMPAIGNS:
+            c = db.query(models.Campaign).filter(models.Campaign.name == name).first()
+            if not c:
+                c = models.Campaign(name=name, status=status, budget=budget)
+                db.add(c)
+                db.flush()
+                added["campaigns"] += 1
+            campaigns[name] = c
+
+        # Existing (v3) ads: attach generated artwork only where none is set.
+        for a in LEGACY_ADS:
+            ad = db.query(models.Ad).filter(models.Ad.title == a["title"]).first()
+            if ad and not ad.image_url:
+                ad.image_url = f"/art/ads/{slugify(a['title'])}.svg"
+
+        camp_names = [c[0] for c in CAMPAIGNS]
+        for i, (title, advertiser, cat, variant, placement, copy) in enumerate(NEW_ADS):
+            if db.query(models.Ad).filter(models.Ad.title == title).first():
+                continue
+            camp = campaigns[camp_names[i % 2]]  # active campaigns only
+            db.add(
+                models.Ad(
+                    title=title,
+                    content=copy,
+                    category=cat,
+                    variant=variant,
+                    image_url=f"/art/ads/{slugify(title)}.svg",
+                    advertiser=advertiser,
+                    destination_url="https://example.com/demo-advertiser",
+                    placement=placement,
+                    status="active",
+                    campaign_id=camp.id,
+                )
+            )
+            added["ads"] += 1
+
+        db.commit()
+        if any(added.values()):
+            print(f"✓ v4 demo content added: {added}")
+        return added
+    except Exception as e:
+        db.rollback()
+        print(f"Content seed failed: {e}")
+        raise
+    finally:
+        db.close()
 
 
 def seed():
@@ -136,3 +163,4 @@ def seed():
 
 if __name__ == "__main__":
     seed()
+    seed_content()

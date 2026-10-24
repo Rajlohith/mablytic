@@ -15,10 +15,13 @@ from auth import (
     verify_and_upgrade_password,
 )
 from database import engine, get_db
+from migrations import ensure_schema
+from routes_v4 import deliverable_ads, router as v4_router
 from dotenv import load_dotenv
 from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, PlainTextResponse
+from starlette.exceptions import HTTPException as StarletteHTTPException
+from fastapi.responses import FileResponse, JSONResponse, PlainTextResponse
 from fastapi.staticfiles import StaticFiles
 from google import genai
 from pydantic import BaseModel, Field
@@ -41,49 +44,53 @@ class AdGenerationRequest(BaseModel):
 
 
 models.Base.metadata.create_all(bind=engine)
+ensure_schema(engine)
 
 app = FastAPI(
     title="MABlytic — Personalized Ad Engine API",
     description="Backend for serving personalized ads and tracking A/B testing data.",
-    version="3.0.0",
+    version="4.0.0",
     docs_url=None,
     redoc_url=None,
     openapi_url=None,
 )
 
 
-# ── Frontend pages ───────────────────────────────────────
-@app.get("/", include_in_schema=False)
-async def serve_index():
-    return FileResponse(FRONTEND_DIR / "index.html")
-
-
-@app.get("/{page_name}.html", include_in_schema=False)
-async def serve_html_page(page_name: str):
-    if not page_name.replace("-", "").replace("_", "").isalnum():
-        raise HTTPException(status_code=404, detail="Page not found.")
-
-    page_path = (FRONTEND_DIR / f"{page_name}.html").resolve()
-
-    if page_path.parent != FRONTEND_DIR.resolve() or not page_path.is_file():
-        raise HTTPException(status_code=404, detail="Page not found.")
-
-    return FileResponse(page_path)
-
-
-# ── Custom 404 page ──────────────────────────────────────
-FRONTEND_DIR = Path(__file__).resolve().parent.parent / "frontend"
+# ── Frontend (React SPA build) ───────────────────────────
+# `npm run build` in web/ writes web/dist. The legacy static site is kept in
+# frontend-legacy/ for reference and is only served if no build exists.
+ROOT_DIR = Path(__file__).resolve().parent.parent
+FRONTEND_DIR = (
+    ROOT_DIR / "web" / "dist"
+    if (ROOT_DIR / "web" / "dist" / "index.html").is_file()
+    else ROOT_DIR / "frontend-legacy"
+)
 NOT_FOUND_PAGE = FRONTEND_DIR / "404.html"
-app.mount(
-    "/css",
-    StaticFiles(directory=FRONTEND_DIR / "css"),
-    name="frontend-css",
+
+
+_API_PREFIXES = (
+    "auth", "articles", "public", "serve-ad", "serve-ads", "interactions",
+    "ads", "admin", "users", "health",
 )
-app.mount(
-    "/js",
-    StaticFiles(directory=FRONTEND_DIR / "js"),
-    name="frontend-js",
-)
+
+
+class SPAStaticFiles(StaticFiles):
+    """Static files that fall back to index.html so client-side routes work.
+
+    Real misses stay 404: anything with a file extension (a missing asset) and
+    anything under an API prefix (so a mistyped API URL isn't answered with HTML).
+    """
+
+    async def get_response(self, path, scope):
+        try:
+            return await super().get_response(path, scope)
+        except StarletteHTTPException as exc:
+            first = path.strip("/").split("/", 1)[0]
+            looks_like_file = "." in path.rsplit("/", 1)[-1]
+            index = FRONTEND_DIR / "index.html"
+            if exc.status_code == 404 and index.is_file() and not looks_like_file and first not in _API_PREFIXES:
+                return FileResponse(index)
+            raise
 
 
 @app.exception_handler(404)
@@ -94,6 +101,9 @@ async def custom_404_handler(request: Request, exc: HTTPException):
             "/auth/",
             "/users",
             "/ads",
+            "/articles",
+            "/public/",
+            "/serve-ad",
             "/serve-ad/",
             "/interactions",
             "/admin/",
@@ -102,9 +112,7 @@ async def custom_404_handler(request: Request, exc: HTTPException):
             "/robots.txt",
         )
     ):
-        return {
-            "detail": str(exc.detail),
-        }
+        return JSONResponse({"detail": str(exc.detail)}, status_code=404)
 
     if NOT_FOUND_PAGE.is_file():
         return FileResponse(
@@ -134,6 +142,8 @@ origins = [
     "http://localhost:8000",
     "http://127.0.0.1:8001",
     "http://localhost:8001",
+    "http://127.0.0.1:5173",
+    "http://localhost:5173",
 ]
 
 app.add_middleware(
@@ -149,9 +159,10 @@ app.add_middleware(
 @app.on_event("startup")
 def seed_on_startup():
     """Seeds the database only if it is empty — safe to run on every cold start."""
-    from seed_data import seed
+    from seed_data import seed, seed_content
 
     seed()
+    seed_content()
 
 
 # ── Health check (used by Render keep-alive ping) ─────────────────────────────
@@ -244,6 +255,12 @@ def login(creds: schemas.UserLogin, db: Session = Depends(get_db)):
             detail="Invalid username or password.",
         )
 
+    if db_user.is_active is False:
+        raise HTTPException(
+            status_code=403,
+            detail="This account has been deactivated. Contact an administrator.",
+        )
+
     # Upgrade legacy hashes, or refresh outdated Argon2 parameters.
     if replacement_hash is not None:
         db_user.password_hash = replacement_hash
@@ -262,6 +279,28 @@ def login(creds: schemas.UserLogin, db: Session = Depends(get_db)):
         "is_admin": db_user.is_admin,
         "preferences": db_user.preferences,
     }
+
+
+class ChangePassword(BaseModel):
+    current_password: str
+    new_password: str
+
+
+@app.post("/auth/change-password", tags=["Auth"])
+def change_password(
+    body: ChangePassword,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    valid, _ = verify_and_upgrade_password(
+        body.current_password, current_user.password_hash
+    )
+    if not valid:
+        raise HTTPException(status_code=401, detail="Current password is incorrect.")
+    validate_password(body.new_password)
+    current_user.password_hash = hash_password(body.new_password)
+    db.commit()
+    return {"message": "Password updated."}
 
 
 @app.get("/auth/profile/{user_id}", response_model=schemas.UserResponse, tags=["Auth"])
@@ -352,7 +391,11 @@ def create_ad(
 ):
     if ad.variant not in ("A", "B"):
         raise HTTPException(status_code=400, detail="Variant must be 'A' or 'B'.")
-    db_ad = models.Ad(**ad.model_dump())
+    from routes_v4 import _validate_ad_fields
+
+    data = ad.model_dump()
+    _validate_ad_fields(data, db)
+    db_ad = models.Ad(**data)
     db.add(db_ad)
     db.commit()
     db.refresh(db_ad)
@@ -419,10 +462,10 @@ def serve_ad(
     if not user:
         raise HTTPException(status_code=404, detail="User not found.")
 
-    ads = db.query(models.Ad).all()
+    ads = deliverable_ads(db)
 
     if not ads:
-        raise HTTPException(status_code=404, detail="No ads in database.")
+        raise HTTPException(status_code=404, detail="No ads available to serve.")
 
     # Parse and validate IDs of ads already displayed in the feed.
     excluded_ids = set()
@@ -850,8 +893,10 @@ def admin_create_user(
 
 
 # ── Frontend static files — keep this last ───────────────
+app.include_router(v4_router)
+
 app.mount(
     "/",
-    StaticFiles(directory=FRONTEND_DIR, html=True),
+    SPAStaticFiles(directory=FRONTEND_DIR, html=True),
     name="frontend",
 )

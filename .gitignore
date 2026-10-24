@@ -154,3 +154,13 @@ Thumbs.db
 *.bak
 *.tmp
 secrets.txt
+# =====================================================
+# Web app (React + Vite)
+# =====================================================
+web/node_modules/
+web/dist/
+web/.env.local
+web/*.tsbuildinfo
+# Python rules above ignore any "lib/" and "dist/" directory; keep the web source
+!web/src/lib/
+!web/src/lib/**

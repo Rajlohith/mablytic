@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" role="img" aria-label="A Budget Standoff Narrows to Three Unresolved Line Items" preserveAspectRatio="xMidYMid slice"><rect width="1200" height="800" fill="#e8e6f0"/>
+<rect x="0" y="0" width="301" height="268" fill="#e8e6f0"/>
+<rect x="0" y="267" width="301" height="268" fill="#a9a3cf"/>
+<rect x="0" y="533" width="301" height="268" fill="#e8e6f0"/>
+<rect x="300" y="0" width="301" height="268" fill="#a9a3cf"/>
+<rect x="300" y="267" width="301" height="268" fill="#e63946"/>
+<rect x="300" y="533" width="301" height="268" fill="#a9a3cf"/>
+<rect x="600" y="0" width="301" height="268" fill="#e8e6f0"/>
+<rect x="600" y="267" width="301" height="268" fill="#a9a3cf"/>
+<rect x="600" y="533" width="301" height="268" fill="#e63946"/>
+<rect x="900" y="0" width="301" height="268" fill="#a9a3cf"/>
+<rect x="900" y="267" width="301" height="268" fill="#3d348b"/>
+<rect x="900" y="533" width="301" height="268" fill="#e63946"/>
+<circle cx="913" cy="357" r="160" fill="#e8e6f0" opacity=".92"/>
+<rect x="0" y="792" width="1200" height="8" fill="#222" opacity=".85"/></svg>
