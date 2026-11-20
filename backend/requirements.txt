@@ -1,19 +1,3 @@
-<<<<<<< HEAD
-fastapi
-uvicorn
-sqlalchemy
-pydantic
-python-multipart
-bcrypt
-passlib[bcrypt]
-cryptography
-psycopg2-binary==2.9.10
-PyJWT==2.15.1
-argon2-cffi==25.1.0
-psycopg[binary]
-python-dotenv
-google-genai
-=======
 fastapi
 uvicorn
 sqlalchemy
@@ -30,4 +14,3 @@ python-dotenv
 google-genai
 feedparser
 httpx
->>>>>>> 46b3366 (Add offline tests for news ingestion functionality)
