@@ -44,7 +44,8 @@ run("accessibility (axe)", () => {
 
   it("article, section, search and auth pages", async () => {
     const list = (await (await fetch("http://localhost:8000/articles?page_size=1")).json()) as { items: { slug: string; title: string }[] };
-    for (const path of [`/article/${list.items[0]!.slug}`, "/section/world", "/search?q=rail", "/login", "/register"]) {
+    const word = list.items[0]!.title.split(/\W+/).sort((a, b) => b.length - a.length)[0]!;
+    for (const path of [`/article/${list.items[0]!.slug}`, "/section/world", `/search?q=${encodeURIComponent(word)}`, "/login", "/register"]) {
       const { container, unmount } = mount(path);
       await waitFor(() => expect(container.querySelector("h1")).not.toBeNull(), { timeout: 15000 });
       await new Promise((r) => setTimeout(r, 400));

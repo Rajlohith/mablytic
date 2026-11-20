@@ -51,14 +51,17 @@ run("live backend", () => {
     expect(within(screen.getByRole("navigation", { name: "Sections" })).getAllByRole("link").length).toBeGreaterThanOrEqual(12);
   }, 40000);
 
-  it("article page: long-form body with inline advertisements", async () => {
-    const list = (await (await fetch("http://localhost:8000/articles?page_size=1")).json()) as { items: { slug: string; title: string }[] };
+  it("article page: real story with attribution and a link to the publisher", async () => {
+    const list = (await (await fetch("http://localhost:8000/articles?page_size=1")).json()) as { items: { slug: string; title: string; is_external: boolean; source_name: string }[] };
     const first = list.items[0]!;
-    const { container } = mount(`/article/${first.slug}`);
+    mount(`/article/${first.slug}`);
     expect(await screen.findByRole("heading", { level: 1, name: first.title }, { timeout: 15000 })).toBeInTheDocument();
-    await waitFor(() => expect(container.querySelectorAll("[data-ad-layout='inline']").length).toBeGreaterThanOrEqual(1), { timeout: 15000 });
-    expect(container.querySelectorAll(".prose-article p").length).toBeGreaterThanOrEqual(8);
-    expect(screen.getByText(/Demonstration content/)).toBeInTheDocument();
+    expect(screen.queryByText(/Demonstration content/)).not.toBeInTheDocument();
+    if (first.is_external) {
+      const link = await screen.findByRole("link", { name: new RegExp(`Read the full story at ${first.source_name}`) });
+      expect(link).toHaveAttribute("href", expect.stringMatching(/^https:\/\//));
+      expect(link).toHaveAttribute("rel", expect.stringContaining("noopener"));
+    }
   }, 40000);
 
   it("unknown article shows a not-found state", async () => {
@@ -67,7 +70,10 @@ run("live backend", () => {
   });
 
   it("search finds articles", async () => {
-    mount("/search?q=rail");
+    // Search for a word taken from a live article, so this works with whatever news is stored.
+    const list = (await (await fetch("http://localhost:8000/articles?page_size=1")).json()) as { items: { title: string }[] };
+    const word = list.items[0]!.title.split(/\W+/).sort((a, b) => b.length - a.length)[0]!;
+    mount(`/search?q=${encodeURIComponent(word)}`);
     expect(await screen.findByText(/\d+ results?/, {}, { timeout: 15000 })).toBeInTheDocument();
   });
 

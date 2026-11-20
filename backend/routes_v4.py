@@ -10,6 +10,7 @@ from datetime import UTC, datetime, timedelta
 from urllib.parse import urlparse
 
 import models
+import news_ingest
 import schemas
 from ad_serving import ThompsonSamplingBandit, user_preference_categories
 from auth import get_current_user, require_admin
@@ -612,6 +613,22 @@ def _validate_article(data: dict) -> None:
         raise HTTPException(status_code=422, detail="read_minutes must be between 1 and 120.")
     if "image_url" in data:
         data["image_url"] = _validate_url(data["image_url"], "image_url", allow_relative=True)
+
+
+@router.get("/admin/news/status", tags=["Admin"])
+def news_status(admin: models.User = Depends(require_admin)):
+    """Live-news ingestion status: last run, per-source results, which keys are set."""
+    return news_ingest.get_status()
+
+
+@router.post("/admin/news/refresh", status_code=202, tags=["Admin"])
+def news_refresh(admin: models.User = Depends(require_admin)):
+    """Fetch the latest news now (runs in the background; poll /admin/news/status)."""
+    started = news_ingest.trigger_refresh_async()
+    return {
+        "started": started,
+        "message": "News refresh started." if started else "A refresh is already running.",
+    }
 
 
 @router.get("/admin/articles", response_model=schemas.ArticlePage, tags=["Admin"])

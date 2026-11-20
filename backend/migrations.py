@@ -22,6 +22,12 @@ _ADDED_COLUMNS = {
         ("end_date", "{timestamp}"),
         ("campaign_id", "INTEGER"),
     ],
+    # Live news (RSS / API) support.
+    "articles": [
+        ("is_external", "BOOLEAN DEFAULT {false}"),
+        ("source_name", "VARCHAR DEFAULT ''"),
+        ("source_url", "VARCHAR DEFAULT ''"),
+    ],
 }
 
 
@@ -30,6 +36,7 @@ def ensure_schema(engine) -> list[str]:
     is_sqlite = engine.dialect.name == "sqlite"
     fmt = {
         "true": "1" if is_sqlite else "TRUE",
+        "false": "0" if is_sqlite else "FALSE",
         "timestamp": "DATETIME" if is_sqlite else "TIMESTAMP WITH TIME ZONE",
     }
     inspector = inspect(engine)
@@ -53,4 +60,6 @@ def ensure_schema(engine) -> list[str]:
             conn.execute(text("UPDATE ads SET status = 'active'"))
         if "ads.placement" in added:
             conn.execute(text("UPDATE ads SET placement = 'any'"))
+        if "articles.source_url" in added and inspector.has_table("articles"):
+            conn.execute(text("CREATE INDEX IF NOT EXISTS ix_articles_source_url ON articles (source_url)"))
     return added

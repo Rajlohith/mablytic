@@ -26,6 +26,7 @@ export default function ArticlesPage() {
   const [page, setPage] = useState(1);
   const [toDelete, setToDelete] = useState<ArticleCard | null>(null);
   const [busy, setBusy] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const { data, error, loading, reload } = useAsync(
     (s) => adminApi.articles({ q: dq, category, status, page, page_size: PAGE_SIZE }, s),
     [dq, category, status, page],
@@ -51,9 +52,28 @@ export default function ArticlesPage() {
     finally { setBusy(false); }
   };
 
+  const refreshNews = async () => {
+    setRefreshing(true);
+    try {
+      const r = await adminApi.refreshNews();
+      toast.success(r.started ? "Fetching the latest news. New stories appear within a minute or two." : r.message);
+      window.setTimeout(reload, 20000);
+    } catch (e) { toast.error(e instanceof Error ? e.message : "Couldn't start the news refresh."); }
+    finally { setRefreshing(false); }
+  };
+
   return (
     <div>
-      <PageHeader title="Articles" description="Publish, edit and retire news articles." actions={<ButtonLink to="/console/articles/new">New article</ButtonLink>} />
+      <PageHeader
+        title="Articles"
+        description="News is pulled automatically from RSS feeds and free news APIs. Publish, edit and retire articles here."
+        actions={
+          <>
+            <Button variant="secondary" loading={refreshing} onClick={() => void refreshNews()}>Fetch latest news</Button>
+            <ButtonLink to="/console/articles/new">New article</ButtonLink>
+          </>
+        }
+      />
       <FilterBar>
         <div className="w-64"><TextField label="Search" value={q} onChange={(e) => { setQ(e.target.value); setPage(1); }} placeholder="Headline or summary" /></div>
         <SelectField label="Section" value={category} onChange={(e) => { setCategory(e.target.value); setPage(1); }}>
@@ -76,6 +96,7 @@ export default function ArticlesPage() {
                   <td className={td}>
                     <Link to={`/console/articles/${a.id}/edit`} className="font-semibold text-ink underline">{a.title}</Link>
                     {a.is_demo && <span className="ml-2 text-meta text-muted">(demo)</span>}
+                    {a.is_external && <span className="ml-2 text-meta text-muted">({a.source_name || "feed"})</span>}
                   </td>
                   <td className={td}>{a.category}</td><td className={td}>{a.author}</td><td className={td}>{formatDate(a.published_at, { month: "short", day: "numeric", year: "numeric" })}</td>
                   <td className={td}><StatusBadge status={a.status} /></td>

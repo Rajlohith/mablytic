@@ -42,28 +42,20 @@ from demo_content import LEGACY_ADS as ADS  # noqa: E402  (moved; unchanged cont
 
 
 def seed_content():
-    """Idempotent v4 content: demo articles, ad creatives, campaigns.
+    """Idempotent v4 content: ad creatives and campaigns.
 
-    Safe on every start-up and on databases created by older versions:
-    articles are inserted only when the table is empty, ads are matched by
-    title, and existing ads only gain an image if they have none.
+    News articles are not seeded: news_ingest.py pulls real stories from RSS
+    feeds / free APIs. Safe on every start-up and on databases created by older
+    versions: ads are matched by title, and existing ads only gain an image if
+    they have none.
     """
-    from datetime import UTC, datetime, timedelta
-
-    from demo_content import CAMPAIGNS, LEGACY_ADS, NEW_ADS, article_rows, slugify
+    from demo_content import CAMPAIGNS, LEGACY_ADS, NEW_ADS, slugify
     from migrations import ensure_schema
 
     ensure_schema(engine)
     db = SessionLocal()
     try:
-        added = {"articles": 0, "ads": 0, "campaigns": 0}
-
-        if db.query(models.Article).count() == 0:
-            now = datetime.now(UTC)
-            for row in article_rows():
-                age = row.pop("_age_hours")
-                db.add(models.Article(published_at=now - timedelta(hours=age), **row))
-                added["articles"] += 1
+        added = {"ads": 0, "campaigns": 0}
 
         campaigns = {}
         for name, status, budget in CAMPAIGNS:

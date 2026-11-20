@@ -87,7 +87,8 @@ class Interaction(Base):
 
 
 class Article(Base):
-    """News article (added in v4). Demo rows are flagged with is_demo=True."""
+    """News article. Rows pulled from RSS/APIs have is_external=True and link back
+    to the publisher via source_url; fictional demo rows (legacy) use is_demo=True."""
 
     __tablename__ = "articles"
 
@@ -104,5 +105,8 @@ class Article(Base):
     read_minutes = Column(Integer, default=4)
     is_featured = Column(Boolean, default=False)
     is_demo = Column(Boolean, default=False)
+    is_external = Column(Boolean, default=False)  # ingested from an RSS feed / news API
+    source_name = Column(String, default="")  # e.g. "BBC News"
+    source_url = Column(String, default="", index=True)  # canonical link to the original story
     status = Column(String, default="published")  # published / draft
     published_at = Column(DateTime(timezone=True), server_default=func.now(), index=True)

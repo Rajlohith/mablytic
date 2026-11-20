@@ -10,6 +10,7 @@ import unittest
 from datetime import UTC, datetime, timedelta
 
 os.environ["MABLYTIC_JWT_SECRET"] = "isolated-test-secret-not-for-production"
+os.environ["NEWS_AUTO_REFRESH"] = "0"  # never hit the network from tests
 _tmp = tempfile.mkdtemp()
 # Set TEST_DATABASE_URL to run against Postgres (use an empty, throwaway database).
 os.environ["DATABASE_URL"] = os.environ.get("TEST_DATABASE_URL") or f"sqlite:///{_tmp}/test.db"
@@ -18,8 +19,31 @@ from fastapi.testclient import TestClient  # noqa: E402
 
 import main  # noqa: E402
 import models  # noqa: E402
+import news_ingest  # noqa: E402
 import seed_data  # noqa: E402
 from database import SessionLocal  # noqa: E402
+
+
+def fixture_news() -> list[news_ingest.NewsItem]:
+    """78 offline stand-ins for feed items: 6 per section, newest first by section."""
+    now = datetime.now(UTC)
+    items = []
+    for ci, cat in enumerate(news_ingest.CATEGORIES):
+        for n in range(6):
+            topic = "rail" if (cat == "U.S." and n == 0) else "topic"
+            items.append(
+                news_ingest.NewsItem(
+                    category=cat,
+                    title=f"{cat} story number {n} about {topic}",
+                    url=f"https://news.example.com/{ci}/{n}",
+                    source="Example News",
+                    summary=f"Summary {n} for {cat}.",
+                    body="Excerpt paragraph one.\n\nExcerpt paragraph two.",
+                    published=now - timedelta(hours=ci * 6 + n),
+                    image_url="https://img.example.com/x.jpg" if n == 0 else "",
+                )
+            )
+    return items
 
 
 class V4ApiTests(unittest.TestCase):
@@ -27,6 +51,13 @@ class V4ApiTests(unittest.TestCase):
     def setUpClass(cls):
         seed_data.seed()
         seed_data.seed_content()
+        db = SessionLocal()
+        try:
+            news_ingest.store_items(db, fixture_news())
+            news_ingest.refresh_featured(db)
+            db.commit()
+        finally:
+            db.close()
         cls.client = TestClient(main.app)
 
     def login(self, username, password):
@@ -36,6 +67,7 @@ class V4ApiTests(unittest.TestCase):
 
     # ── seed volume ──────────────────────────────────────────────────────────
     def test_seed_volume_and_idempotence(self):
+        # Articles come from news_ingest (fixtures here); seed_content must not add any.
         db = SessionLocal()
         try:
             self.assertGreaterEqual(db.query(models.Article).count(), 60)
@@ -80,8 +112,11 @@ class V4ApiTests(unittest.TestCase):
     def test_article_detail_and_missing(self):
         slug = self.client.get("/articles?page_size=1").json()["items"][0]["slug"]
         d = self.client.get(f"/articles/{slug}").json()
-        self.assertGreaterEqual(len(d["body"].split("\n\n")), 8)
-        self.assertTrue(d["is_demo"])
+        self.assertTrue(d["is_external"])
+        self.assertFalse(d["is_demo"])
+        self.assertEqual(d["source_name"], "Example News")
+        self.assertTrue(d["source_url"].startswith("https://news.example.com/"))
+        self.assertEqual(len(d["body"].split("\n\n")), 2)
         self.assertEqual(self.client.get("/articles/does-not-exist").status_code, 404)
 
     def test_for_you_requires_auth_and_uses_preferences(self):
@@ -157,11 +192,31 @@ class V4ApiTests(unittest.TestCase):
             ("get", "/admin/overview"), ("get", "/admin/campaigns"), ("get", "/admin/articles"),
             ("get", "/admin/targeting"), ("get", "/admin/users"), ("put", "/admin/users/1"),
             ("post", "/admin/articles"), ("delete", "/admin/articles/1"), ("put", "/admin/ads/1"),
+            ("get", "/admin/news/status"), ("post", "/admin/news/refresh"),
         ]:
             anon = getattr(self.client, method)(path)
             self.assertEqual(anon.status_code, 401, path)
             forb = getattr(self.client, method)(path, headers=user_h)
             self.assertEqual(forb.status_code, 403, path)
+
+    def test_admin_news_status_and_refresh(self):
+        from unittest import mock
+
+        h, _ = self.login("admin", "Admin123")
+        st = self.client.get("/admin/news/status", headers=h).json()
+        self.assertIn("configured", st)
+        self.assertEqual(set(st["configured"]), {"guardian_api", "nyt_api", "rss_feeds"})
+        self.assertNotIn("key", str(st).lower().replace("api_key", ""))  # never echo secrets
+        with mock.patch.object(news_ingest, "trigger_refresh_async", return_value=True) as trig:
+            r = self.client.post("/admin/news/refresh", headers=h)
+        self.assertEqual(r.status_code, 202)
+        self.assertTrue(r.json()["started"])
+        trig.assert_called_once()
+
+    def test_feed_articles_are_featured_per_section(self):
+        feat = self.client.get("/articles?featured=true&page_size=48").json()["items"]
+        self.assertEqual({i["category"] for i in feat}, set(news_ingest.CATEGORIES))
+        self.assertTrue(all(i["image_url"] for i in feat))
 
     def test_admin_cannot_demote_self(self):
         admin_h, admin = self.login("admin", "Admin123")

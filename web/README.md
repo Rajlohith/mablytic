@@ -64,5 +64,4 @@ Views (≥50% visible) and clicks are logged for signed-in readers only.
 ## Demo content
 
 `cd backend && python generate_art.py` regenerates the original SVG artwork in `web/public/art`.
-Seeding (`seed_content`) is idempotent and runs on start-up. All 65 demo articles are fictional and flagged
-`is_demo`; the UI labels them as demonstration content.
+Seeding (`seed_content`) is idempotent and runs on start-up. Articles come from real RSS feeds / free news APIs (`backend/news_ingest.py`); ad creatives remain generated demo art.

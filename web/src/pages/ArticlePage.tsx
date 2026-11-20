@@ -63,9 +63,11 @@ export default function ArticlePage() {
           <h1 className="mt-3 font-headline text-4xl font-bold leading-[1.1] text-ink sm:text-5xl">{a.title}</h1>
           <p className="mt-4 font-serif text-xl leading-snug text-muted">{a.summary}</p>
           <div className="mt-5 border-y border-rule py-3 font-sans text-small">
-            <p className="font-semibold text-ink">By {a.author}</p>
+            <p className="font-semibold text-ink">
+              {a.is_external && a.source_name ? (a.author && a.author !== a.source_name ? `By ${a.author}` : a.source_name) : `By ${a.author}`}
+            </p>
             <p className="text-muted">
-              Published {formatDate(a.published_at)} · {a.read_minutes} min read
+              Published {formatDate(a.published_at)} · {a.is_external && a.source_name ? `via ${a.source_name}` : `${a.read_minutes} min read`}
             </p>
           </div>
         </header>
@@ -88,6 +90,18 @@ export default function ArticlePage() {
             </Fragment>
           ))}
         </div>
+
+        {a.is_external && a.source_url && (
+          <div className="mt-8 rounded border border-rule bg-wash p-4 font-sans">
+            <p className="text-small text-muted">
+              This page shows the headline, summary and an excerpt. The full story is published by {a.source_name}.
+            </p>
+            <a href={a.source_url} target="_blank" rel="noopener noreferrer" className={buttonClass("primary", "md", "mt-3")}>
+              Read the full story at {a.source_name}
+              <span className="sr-only"> (opens in a new tab)</span>
+            </a>
+          </div>
+        )}
       </article>
 
       <aside aria-label="Sidebar" className="lg:pt-2">

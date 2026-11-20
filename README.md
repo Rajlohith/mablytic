@@ -542,3 +542,18 @@ https://mablytic.web.app
 
 Repository:
 https://github.com/Rajlohith/mablytic
+
+
+## Live news (RSS + free APIs)
+
+Articles are real stories pulled by `backend/news_ingest.py` (no paid services):
+
+* **RSS, no key:** BBC News, NPR, The Guardian, Ars Technica, The Verge, NASA, ESPN, Grist.
+* **Optional free APIs:** set `GUARDIAN_API_KEY` and/or `NYT_API_KEY` (see `backend/.env.example`).
+
+Only headline, summary, a short excerpt, image URL and byline are stored; every article page links to the
+publisher's original story. The backend refreshes on start-up and every `NEWS_REFRESH_MINUTES` (default 60);
+admins can use **Articles -> Fetch latest news** or `POST /admin/news/refresh`; `GET /admin/news/status` shows
+per-source results. Run once manually: `cd backend && python news_ingest.py`. The first successful refresh
+(10+ real articles) deletes the old fictional demo articles. Check each publisher's terms before commercial use
+(the Guardian developer key is non-commercial).

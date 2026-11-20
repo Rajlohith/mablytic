@@ -164,6 +164,12 @@ def seed_on_startup():
     seed()
     seed_content()
 
+    # Real news: pull RSS feeds / free APIs now and then every NEWS_REFRESH_MINUTES.
+    # Runs in a background thread so start-up is never blocked by the network.
+    import news_ingest
+
+    news_ingest.start_background_refresh()
+
 
 # ── Health check (used by Render keep-alive ping) ─────────────────────────────
 @app.get("/health")

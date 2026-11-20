@@ -16,6 +16,10 @@ export interface ArticleCard {
   read_minutes: number;
   is_featured: boolean;
   is_demo: boolean;
+  /** Pulled from an RSS feed / news API; links back to the publisher. */
+  is_external: boolean;
+  source_name: string;
+  source_url: string;
   status: ArticleStatus;
   published_at: string | null;
 }

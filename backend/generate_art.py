@@ -1,6 +1,8 @@
-"""Generate original, license-free SVG artwork for demo articles and ad creatives.
+"""Generate original, license-free SVG artwork for the demo ad creatives.
 
-    python generate_art.py            # writes ../web/public/art/{articles,ads}/*.svg
+News articles use the publishers' own images (see news_ingest.py).
+
+    python generate_art.py            # writes ../web/public/art/ads/*.svg
 
 Deterministic (seeded by slug), no network, no third-party assets. Article
 images are text-free flat illustrations; ad creatives carry the advertiser name
@@ -14,7 +16,7 @@ import random
 import textwrap
 from pathlib import Path
 
-from demo_content import ARTICLES, LEGACY_ADS, NEW_ADS, slugify
+from demo_content import LEGACY_ADS, NEW_ADS, slugify
 
 OUT = Path(__file__).resolve().parent.parent / "web" / "public" / "art"
 
@@ -82,16 +84,6 @@ def _shapes(r: random.Random, w: int, h: int, colors: tuple[str, ...]) -> str:
     return "\n".join(parts)
 
 
-def article_svg(slug: str, category: str, title: str) -> str:
-    w, h = 1200, 800
-    colors = PALETTES[category]
-    body = _shapes(_rng(slug), w, h, colors)
-    return (
-        f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {w} {h}" role="img" '
-        f'aria-label="{html.escape(title, quote=True)}" preserveAspectRatio="xMidYMid slice">{body}</svg>'
-    )
-
-
 def ad_svg(title: str, advertiser: str, category: str) -> str:
     w, h = 1200, 628
     colors = PALETTES[AD_PALETTES.get(category, "Business")]
@@ -114,20 +106,15 @@ def ad_svg(title: str, advertiser: str, category: str) -> str:
 
 
 def main() -> None:
-    (OUT / "articles").mkdir(parents=True, exist_ok=True)
     (OUT / "ads").mkdir(parents=True, exist_ok=True)
-    n_art = n_ad = 0
-    for cat, title, *_ in ARTICLES:
-        slug = slugify(title)
-        (OUT / "articles" / f"{slug}.svg").write_text(article_svg(slug, cat, title), encoding="utf-8")
-        n_art += 1
+    n_ad = 0
     for a in LEGACY_ADS:
         (OUT / "ads" / f"{slugify(a['title'])}.svg").write_text(ad_svg(a["title"], "", a["category"]), encoding="utf-8")
         n_ad += 1
     for title, advertiser, cat, *_ in NEW_ADS:
         (OUT / "ads" / f"{slugify(title)}.svg").write_text(ad_svg(title, advertiser, cat), encoding="utf-8")
         n_ad += 1
-    print(f"wrote {n_art} article images and {n_ad} ad creatives to {OUT}")
+    print(f"wrote {n_ad} ad creatives to {OUT}")
 
 
 if __name__ == "__main__":

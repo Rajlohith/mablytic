@@ -77,4 +77,7 @@ export const adminApi = {
   updateArticle: (id: number, input: Partial<ArticleInput>) =>
     request<Article>(`/admin/articles/${id}`, { method: "PUT", body: input }),
   deleteArticle: (id: number) => request<{ message: string }>(`/admin/articles/${id}`, { method: "DELETE" }),
+
+  /** Start a live-news refresh in the background (RSS feeds + free APIs). */
+  refreshNews: () => request<{ started: boolean; message: string }>("/admin/news/refresh", { method: "POST" }),
 };

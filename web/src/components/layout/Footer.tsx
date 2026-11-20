@@ -33,7 +33,8 @@ export function Footer() {
           )}
         </ul>
         <p className="mt-4 font-sans text-meta text-muted">
-          © {new Date().getFullYear()} Mablytic. Articles in this edition are demonstration content.
+          © {new Date().getFullYear()} Mablytic. Headlines, summaries and images come from publishers' public RSS feeds and
+          free news APIs (BBC News, NPR, The Guardian, The New York Times and others). Each story links to the original.
         </p>
       </div>
     </footer>

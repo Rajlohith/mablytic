@@ -1,8 +1,22 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { categorySlug, formatDate } from "@/lib/format";
 import type { ArticleCard as Card } from "@/types";
 
 export const articlePath = (a: Pick<Card, "slug">) => `/article/${a.slug}`;
+
+type Attribution = Pick<Card, "is_external" | "source_name" | "author" | "read_minutes">;
+
+/** Feed articles show their publisher; hand-written ones show reading time. */
+export const metaTail = (a: Attribution) =>
+  a.is_external && a.source_name ? a.source_name : `${a.read_minutes} min read`;
+
+export const cardByline = (a: Attribution) =>
+  a.is_external && a.source_name
+    ? a.author && a.author !== a.source_name
+      ? `By ${a.author} · ${a.source_name}`
+      : a.source_name
+    : `By ${a.author} · ${a.read_minutes} min read`;
 
 interface ImgProps {
   article: Card;
@@ -13,7 +27,9 @@ interface ImgProps {
 }
 
 export function ArticleImage({ article, ratio = "aspect-[3/2]", eager, credit, className = "" }: ImgProps) {
-  if (!article.image_url) return <div aria-hidden className={`${ratio} bg-wash ${className}`} />;
+  // Publisher images are hot-linked: fall back to the neutral placeholder if one fails to load.
+  const [failedUrl, setFailedUrl] = useState<string | null>(null);
+  if (!article.image_url || failedUrl === article.image_url) return <div aria-hidden className={`${ratio} bg-wash ${className}`} />;
   return (
     <figure className={className}>
       <div className={`${ratio} overflow-hidden bg-wash`}>
@@ -22,6 +38,8 @@ export function ArticleImage({ article, ratio = "aspect-[3/2]", eager, credit, c
           alt={article.image_alt}
           loading={eager ? "eager" : "lazy"}
           decoding="async"
+          referrerPolicy="no-referrer"
+          onError={() => setFailedUrl(article.image_url)}
           className="h-full w-full object-cover"
         />
       </div>
@@ -40,7 +58,7 @@ const Meta = ({ a, showCategory }: { a: Card; showCategory?: boolean }) => (
         <span aria-hidden> · </span>
       </>
     )}
-    {a.read_minutes} min read
+    {metaTail(a)}
   </p>
 );
 
@@ -105,7 +123,7 @@ export function ArticleCard({ article: a, variant = "stacked", showCategory, eag
             <p className="font-sans text-meta font-bold uppercase tracking-wider text-ink">{a.category}</p>
             <Title a={a} className="mt-1 text-2xl font-bold leading-tight" />
             <p className="mt-2 font-serif text-deck text-muted">{a.summary}</p>
-            <p className="mt-2 font-sans text-meta uppercase text-muted">By {a.author} · {a.read_minutes} min read</p>
+            <p className="mt-2 font-sans text-meta uppercase text-muted">{cardByline(a)}</p>
           </div>
           <ArticleImage article={a} ratio="aspect-[4/3]" className="sm:order-last" />
         </article>

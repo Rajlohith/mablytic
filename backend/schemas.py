@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 
 # ── Auth ──────────────────────────────────────────────────────────────────────
 
@@ -219,8 +219,22 @@ class ArticleCard(BaseModel):
     read_minutes: int
     is_featured: bool
     is_demo: bool
+    is_external: bool = False
+    source_name: str = ""
+    source_url: str = ""
     status: str
     published_at: datetime | None = None
+
+    # Rows that predate these columns may hold NULLs.
+    @field_validator("source_name", "source_url", mode="before")
+    @classmethod
+    def _none_to_empty(cls, v):
+        return v or ""
+
+    @field_validator("is_external", "is_demo", mode="before")
+    @classmethod
+    def _none_to_false(cls, v):
+        return bool(v)
 
     class Config:
         from_attributes = True
